@@ -52,7 +52,7 @@ update is a function to signal the calling program, called with two arguments ke
   'udp': port number that failed to open, fatal error
 ```
 
-### Example program mdht.js
+### Example program test.js
 This program provides a command line interface for dht.js as well as an interface with disk storage. The id, seed and boot locations are saved in separate files between sessions. Without these files, the DHT will use random values for nodeId and seed, but would require a boot location as a command line argument.
 
 ### shim.js interface with Webtorrent

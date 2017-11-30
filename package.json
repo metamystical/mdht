@@ -1,0 +1,15 @@
+{
+  "name": "mdht",
+  "version": "1.0.0",
+  "main": "mdht.js",
+  "description": "Mainline DHT",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/metamystical/mdht.git"
+  },
+  "dependencies": {
+    "bencode": "^1.0.0",
+    "ed25519-supercop": "^1.0.2"
+  }
+}

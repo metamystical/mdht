@@ -4,7 +4,7 @@ Dynamic Hash Table customized for the mainline DHT used by bittorrent to locate 
 
 ### Usage:
 ```
-const dhtInit = require('./mdht')
+const dhtInit = require('mdht')
 const dht = dhtInit(options, update) // options is an object, update is a callback function
 ```
 ```
@@ -53,8 +53,8 @@ update is a function to signal the calling program, called with two arguments ke
 ```
 
 ### Example program test.js
-This program provides a command line interface for dht.js as well as an interface with disk storage. The id, seed and boot locations are saved in separate files between sessions. Without these files, the DHT will use random values for nodeId and seed, but would require a boot location as a command line argument.
+This program provides a command line interface for dht.js as well as an interface with disk storage. The id, seed and boot locations are saved in separate files between sessions. Without these files, the DHT will use random values for nodeId and seed, but would require a boot location as a command line argument. Usage: `require('mdht/test.js')` alone in a file named, for example, `test.js`. 
 
 ### shim.js interface with Webtorrent
 This program is a shim between dht.js and [webtorrent](https://github.com/webtorrent/webtorrent) as a replacement for [bittorrent-dht](https://github.com/webtorrent/bittorrent-dht), which is problematic. One line needs to be changed in [webtorrent/index.js](https://github.com/webtorrent/webtorrent/blob/master/index.js):
-change `var DHT = require('bittorrent-dht/client') // browser exclude` to `var DHT = require('./shim')`
+change `var DHT = require('bittorrent-dht/client') // browser exclude` to `var DHT = require('mdht/shim')`

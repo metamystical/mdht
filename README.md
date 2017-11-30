@@ -18,7 +18,7 @@ options:
 dhtInit returns an object with the following methods:
   dht.announcePeer(ih, (numVisited, numAnnounced) => {})
   dht.getPeers(ih, (peers, numVisited) => {})
-  dht.putData(v, salt, mutable, reset, (numVisited, numStored) => {})
+  dht.putData(v, salt, mutable, reset, (numVisited, numStored) => {}) // returns a
   dht.getData(target, salt, (v, seq, numVisited, numFound) => {})
   dht.makeSalt(string | buffer) // returns a valid salt buffer <= 64 bytes, given a string or buffer
   dht.makeMutableTarget(k, salt) // returns a mutable target
@@ -31,6 +31,7 @@ dhtInit returns an object with the following methods:
    k -- public key (32-byte buffer)
    salt -- if not null, used to vary the target of mutable data for a given public key (<= 64-byte buffer)
    mutable -- true if mutable data, false if immutable (boolean)
+   a -- outgoing object with .v and .target, and if mutable: .salt (if used), .seq (sequence number), .k, .sig (ed25519 signature, 64-byte buffer)
    reset -- if not null, a target (possibly obtained from elsewhere along with salt) to reset the timeout of previously stored mutable data
 ```
 ```
@@ -56,5 +57,19 @@ update is a function to signal the calling program, called with two arguments ke
 This program provides a command line interface for dht.js as well as an interface with disk storage. The id, seed and boot locations are saved in separate files between sessions. Without these files, the DHT will use random values for nodeId and seed, but would require a boot location as a command line argument. Usage: `require('mdht/test.js')` alone in a file named, for example, `test.js`. 
 
 ### shim.js interface with Webtorrent
-This program is a shim between dht.js and [webtorrent](https://github.com/webtorrent/webtorrent) as a replacement for [bittorrent-dht](https://github.com/webtorrent/bittorrent-dht), which is problematic. One line needs to be changed in [webtorrent/index.js](https://github.com/webtorrent/webtorrent/blob/master/index.js):
-change `var DHT = require('bittorrent-dht/client') // browser exclude` to `var DHT = require('mdht/shim')`
+This program is a shim between dht.js and [webtorrent](https://github.com/webtorrent/webtorrent) as a replacement for [bittorrent-dht](https://github.com/webtorrent/bittorrent-dht), which is problematic. [webtorrent/index.js](https://github.com/webtorrent/webtorrent/blob/master/index.js) needs to be modified locally in `node_modules/webtorrent` so that it requires `mdht/shim` rather than `bittorrent-dht/client`. Then, invoke webtorrent like so:
+```
+const WebTorrent = require('webtorrent')  // must modify webtorrent to require mdht/shim instead of bittorrent-dht/client
+const client = new WebTorrent({ torrentPort: port, dhtPort: port, dht: { nodeId: id, bootstrap: nodes, seed: seed } })
+  where `port` is a number and `id`, `nodes` and `seed` are buffers destined for mdht.js (see above).
+```
+Then use:
+```
+client.dht.once('ready', function () { )) // bootstrap complete, ready for new torrents
+client.dht.on('nodes', function (nodes) { }) // periodic report of DHT routing table nodes for saving (see locs above) 
+client.dht.nodeId // actual nodeId used
+const a = client.dht.put(v, salt, function (numVisited, numStored) { }) // see above for v, salt and a
+client.dht.get(target, function (v, seq, numVisited, numFound) { } ) // see above for v, seq; target is returned by put
+  or computed from v (immutable) or k, salt (mutable) (see makeImmutableTarget and makeMutableTarget above)
+```
+

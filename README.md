@@ -54,10 +54,10 @@ update is a function to signal the calling program, called with two arguments ke
 ```
 
 ### Example program test.js
-This program provides a command line interface for dht.js as well as an interface with disk storage. The id, seed and boot locations are saved in separate files between sessions. Without these files, the DHT will use random values for nodeId and seed, but would require a boot location as a command line argument. Usage: `require('mdht/test.js')` alone in a file named, for example, `test.js`. 
+This program provides a command line interface for mdht.js as well as an interface with disk storage. The id, seed and boot locations are saved in separate files between sessions. Without these files, the DHT will use random values for nodeId and seed, but would require a boot location as a command line argument. Usage: `require('mdht/test.js')` alone in a file named, for example, `test.js`. 
 
 ### shim.js interface with Webtorrent
-This program is a shim between dht.js and [webtorrent](https://github.com/webtorrent/webtorrent) as a replacement for [bittorrent-dht](https://github.com/webtorrent/bittorrent-dht), which is problematic. [webtorrent/index.js](https://github.com/webtorrent/webtorrent/blob/master/index.js) needs to be modified locally in `node_modules/webtorrent` so that it requires `mdht/shim` rather than `bittorrent-dht/client`. Then, invoke webtorrent like so:
+This program is a shim between mdht.js and [webtorrent](https://github.com/webtorrent/webtorrent) as a replacement for [bittorrent-dht](https://github.com/webtorrent/bittorrent-dht), which is problematic. [webtorrent/index.js](https://github.com/webtorrent/webtorrent/blob/master/index.js) needs to be modified locally in `node_modules/webtorrent` so that it requires `mdht/shim` rather than `bittorrent-dht/client`. Then, invoke webtorrent like so:
 ```
 const WebTorrent = require('webtorrent')  // must modify webtorrent to require mdht/shim instead of bittorrent-dht/client
 const client = new WebTorrent({ torrentPort: port, dhtPort: port, dht: { nodeId: id, bootstrap: nodes, seed: seed } })
@@ -66,7 +66,7 @@ const client = new WebTorrent({ torrentPort: port, dhtPort: port, dht: { nodeId:
 Then use (see [torr.js](https://github.com/metamystical/torr) for an example):
 ```
 client.dht.once('ready', function () { )) // bootstrap complete, ready for new torrents
-client.dht.on('nodes', function (nodes) { }) // periodic report of DHT routing table nodes for saving (see locs above) 
+client.dht.on('nodes', function (nodes) { }) // periodic report of DHT routing table node locations for saving (see locs above) 
 client.dht.nodeId // actual nodeId used
 const a = client.dht.put(v, salt, function (numVisited, numStored) { }) // see above for v, salt and a
 client.dht.get(target, function (v, seq, numVisited, numFound) { } ) // see above for v, seq; target is returned by put

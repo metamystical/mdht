@@ -41,7 +41,7 @@ update is a function to signal the calling program, called with two arguments ke
   'listening': udp socket address object, including .port (int)
   'ready': number of nodes visited during bootstrap, signals bootstrap complete
   'locs': buffer packed with node addresses from the routing table, each a 6-byte network location
-  'closest': array of node id buffers from the routing table, the 8 closest nodes to the table id
+  'closest': array of node id buffers from the routing table, the closest nodes to the table id
   'incoming': incoming query object, .q = query type (string), .rinfo = remote node object including .address and .port
   'peers': object containing stored peer statistics, .numPeers = number of peers, .infohashes = number of infohashes
   'data': number of stored BEP44 data items

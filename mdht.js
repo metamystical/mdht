@@ -295,7 +295,7 @@ const oq = {
     }
     const table = my.table.createTempTable(target)
     oq.populate(table, table.closestContacts().map((contact) => { return contact.loc }), (numVisited) => {
-      let pending = 0; let unique = Buffer.alloc(); let peers = null; let numStored = 0; let numFound = 0; let value = null; let seq = 0
+      let pending = 0; let unique = Buffer.alloc(0); let peers = null; let numStored = 0; let numFound = 0; let value = null; let seq = 0
 
       const finish = () => {
         if (--pending > 0) return
@@ -331,7 +331,7 @@ const oq = {
             if (res.values) {
               let err = null; res.values.forEach((peer) => { if (peer.length !== ut.locLen) err = true })
               if (err) { finish(); return }
-              !peers || (peers = [])
+              peers || (peers = [])
               res.values.forEach((peer) => { if (!unique.includes(peer)) { unique = Buffer.concat([unique, peer]); peers.push(peer) } })
               if (onV) onV(res, target)
             }
@@ -507,3 +507,5 @@ const ds = {
 }
 
 module.exports = go.init
+
+// review err codes

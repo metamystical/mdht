@@ -27,20 +27,20 @@ options:
 dhtInit returns an object with the following methods:
   dht.announcePeer(ih, (numVisited, numAnnounced) => {}, onV)
   dht.getPeers(ih, (numVisited, peers) => {}, onV)
-  dht.putData(v, mutableSalt, target, (numVisited, numStored) => {}, onV) // returns { target: (loc), etc }
+  dht.putData(v, mutableSalt, resetTarget, (numVisited, numStored) => {}, onV) // returns 'ret' object
   dht.getData(target, mutableSalt, (numVisited, { v: (object), seq: (int), numFound: (int) } or null if not found) => {}, onV)
-  dht.makeMutableSalt(string | buffer) // returns a valid salt buffer <= 64 bytes, given a string or buffer, or false
   dht.makeMutableTarget(k, salt) // returns a mutable target
   dht.makeImmutableTarget(v) // returns an Immutable target
 
   where:
     ih -- infohash of a torrent (20-byte buffer)
-    target -- id of data stored in the DHT (20-byte buffer); if not null in putData, used to reset the timeout of previously stored mutable data
-    mutableSalt -- false if immutable BEP44 data or true if mutable but no salt (boolean), or salt to vary the target of mutable data (<= 64-byte buffer)
+    target -- id of data stored in the DHT (20-byte buffer)
+    resetTarget -- if not null, used to reset the timeout of previously stored mutable data (v ignored in this case), may be obtained from third party
+    mutableSalt -- false if immutable BEP44 data or true if mutable but no salt (boolean), or salt (utf-8 string or buffer <= 64-bytes) which implies mutable
     v -- value stored in the DHT by putData and returned by getData (object, buffer, string or number)
     seq -- sequence number of mutable data
     k -- public key use to verify mutable data (32-byte buffer)
-    a -- outgoing object with .v and .target, and if mutable: .salt (if used), .seq (sequence number), .k, .sig (ed25519 signature, 64-byte buffer)
+    ret -- object with .target and applicable outgoing arguments .v, .salt, .seq (sequence number), .k, .sig (ed25519 signature, 64-byte buffer), all as actually used
     onV -- if not null or undefined, called whenever a value is received (a peer or BEP44 data) with arguments (target/ih, response object)
 ```
 ```
@@ -83,7 +83,7 @@ Then use (see [torr.js](https://github.com/metamystical/torr) for an example):
 client.dht.once('ready', function () { )) // bootstrap complete, ready for new torrents
 client.dht.on('nodes', function (nodes) { }) // periodic report of DHT routing table node locations for saving (see locs above)
 client.dht.nodeId // actual nodeId used
-const a = client.dht.put(v, mutableSalt, target, function (numVisited, numStored) { })
+const ret = client.dht.put(v, mutableSalt, resetTarget, function (numVisited, numStored) { })
 client.dht.get(target, mutableSalt, function (numVisited, { v: (object), seq: (int), numFound: (int) }) { } )
-  where target is returned by put (see putData above) or computed (see makeImmutableTarget and makeMutableTarget above)
+  where target is returned by put (see putData above) or computed (see makeImmutableTarget and makeMutableTarget above) or obtained from a third party
 ```

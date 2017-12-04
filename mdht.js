@@ -61,10 +61,10 @@ const ut = {
     return { address: str, port: ut.buff2ToInt(loc.slice(4)) }
   },
   makeSalt: (salt) => {
-    if (!salt) return null
+    if (!salt) return false
     if (typeof salt === 'string') return ut.sha1(Buffer.from(salt))
     if (Buffer.isBuffer(salt)) return salt.slice(0, ut.saltLen)
-    return null
+    return false
   },
   addContact: (table, id, loc) => {
     const contact = { id: id, loc: loc }
@@ -191,7 +191,7 @@ const pi = {
 
   getData: (target, mutableSalt, done, onV) => { oq.act('get', { target: target, mutableSalt: mutableSalt }, onV, null, null, done) },
 
-  putData: (v, mutableSalt, target, done, onV) => { return oq.act('get', { target: target, mutableSalt: mutableSalt }, onV, 'put', { v: v }, done) }
+  putData: (v, mutableSalt, target, done, onV) => { return oq.act('get', { mutableSalt: mutableSalt }, onV, 'put', { v: v }, done) }
 }
 
 // outgoing queries
@@ -277,21 +277,20 @@ const oq = {
     preArgs.mutableSalt && (mutable = true)
     Buffer.isBuffer(preArgs.mutableSalt) && (salt = preArgs.salt)
     delete preArgs.mutableSalt
-    let a = null
     if (post === 'put') {
-      const v = postArgs.v
-      a = { v: v }
       if (mutable) {
-        salt && (a.salt = salt)
+        salt && (postArgs.salt = salt)
         if (!target) {
-          a.seq = ~~(Date.now() / 1000) // unix time in seconds
-          a.k = my.keyPair.publicKey
-          a.sig = eds.sign(ut.packSeqSalt(a.seq, v, salt), my.keyPair.publicKey, my.keyPair.secretKey)
-          target = ut.makeMutableTarget(a.k, salt)
+          postArgs.seq = ~~(Date.now() / 1000) // unix time in seconds
+          postArgs.k = my.keyPair.publicKey
+          postArgs.sig = eds.sign(ut.packSeqSalt(postArgs.seq, postArgs.v, salt), my.keyPair.publicKey, my.keyPair.secretKey)
+          target = ut.makeMutableTarget(postArgs.k, salt)
         }
       } else {
-        target = ut.makeImmutableTarget(v)
+        target = ut.makeImmutableTarget(postArgs.v)
       }
+      preArgs.target = target
+      postArgs.target = target
     }
     const table = my.table.createTempTable(target)
     oq.populate(table, table.closestContacts().map((contact) => { return contact.loc }), (numVisited) => {
@@ -302,7 +301,7 @@ const oq = {
         if (post) done(numVisited, numStored)
         else if (peers) done(numVisited, peers)
         else if (value !== null) done(numVisited, { v: value, seq: seq, numFound: numFound })
-        else done(null, 0)
+        else done(numVisited, null)
       }
       table.closestContacts().forEach((contact) => {
         ++pending
@@ -310,7 +309,7 @@ const oq = {
           if (res) {
             if (res.v) { // get
               if (ben.encode(res.v).length > ut.maxV) { finish(); return }
-              if (res.seq || res.k || res.sig) { // mutable
+              if (mutable) { // mutable
                 if (!(res.seq && res.k && res.sig && res.k.length === ut.keyLen && res.sig.length === ut.sigLen)) { finish(); return }
                 if (!target.equals(ut.makeMutableTarget(res.k, salt))) { finish(); return }
                 if (!eds.verify(res.sig, ut.packSeqSalt(res.seq, res.v, salt), res.k)) { finish(); return }
@@ -353,7 +352,7 @@ const oq = {
         })
       })
     })
-    if (post === 'put') { a.target = target; return a }
+    if (post === 'put') { return postArgs }
   }
 }
 
@@ -497,6 +496,7 @@ const ds = {
   putData: (target, data) => {
     data.time = Date.now()
     ds.data[ut.buffToHex(target)] = data
+    console.log(ds.data)
   },
 
   getData: (target) => {

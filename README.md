@@ -62,7 +62,7 @@ update is a function to signal the calling program, called with two arguments (k
   'dropData': data dropped from BEP44 storage, { address: (string), port: (int) }
 ```
 
-### Example program test.js
+### test.js example program
 This program provides a command line interface for mdht.js as well as an interface with disk storage.
 The id, seed and boot locations are saved in separate files between sessions.
 Without these files, the DHT will use random values for id and seed, but would require a boot location as a command line argument.

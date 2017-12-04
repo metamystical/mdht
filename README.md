@@ -65,7 +65,7 @@ update is a function to signal the calling program, called with two arguments (k
 ### Example program test.js
 This program provides a command line interface for mdht.js as well as an interface with disk storage.
 The id, seed and boot locations are saved in separate files between sessions.
-Without these files, the DHT will use random values for nodeId and seed, but would require a boot location as a command line argument.
+Without these files, the DHT will use random values for id and seed, but would require a boot location as a command line argument.
 Usage: `require('mdht/test.js')` alone in a file named, for example, `test.js`.
 
 ### shim.js interface with Webtorrent

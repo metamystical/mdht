@@ -124,15 +124,16 @@ function next () {
   //  else console.log('=> no peers found')
   // })
 
-  // const v = {m: 'JEB', f: 'MLK'}; const mutableSalt = dht.makeMutableSalt('salt')
-  // console.log('a:', dht.putData(v, false, null, (numVisited, numStored) => { console.log('put:', numVisited, numStored) }))
+  const v = {m: 'JEB', f: 'MLK'}; let mutableSalt = false; let resetTarget = null
+  // console.log('a:', dht.putData(v, mutableSalt, resetTarget, (numVisited, numStored) => { console.log('put:', numVisited, numStored) }))
   // let target = dht.makeImmutableTarget(v); console.log('target', target.toString('hex'))
   // dht.getData(target, false, (numVisited, value) => { console.log('get:', numVisited, value) })
 
-  // console.log(dht.putData(v, mutableSalt, null, (numVisited, numStored) => { console.log('put:', numVisited, numStored) }))
+  // mutableSalt = 'salt'
+  // console.log(dht.putData(v, mutableSalt, resetTarget, (numVisited, numStored) => { console.log('put:', numVisited, numStored) }))
   // target = dht.makeMutableTarget(pKey, salt); console.log('target', target.toString('hex'))
   // dht.getData(target, mutableSalt, (numVisited, value) => { console.log('get:', value, numVisited) })
 
-  // use target (possibly obtained from elsewhere along with salt), as third argument to reset timer (mutable)
-  // console.log(dht.putData(v, mutableSalt, target, (numVisited, numStored) => { console.log('put:', numVisited, numStored) }))
+  // resetTarget = target
+  // console.log(dht.putData(v, mutableSalt, resetTarget, (numVisited, numStored) => { console.log('put:', numVisited, numStored) }))
 }

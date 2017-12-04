@@ -60,12 +60,6 @@ const ut = {
     for (let i = 0; i < 4; i++) str += loc[i] + (i < 3 ? '.' : '')
     return { address: str, port: ut.buff2ToInt(loc.slice(4)) }
   },
-  makeMutableSalt: (salt) => {
-    if (!salt) return false
-    if (typeof salt === 'string') return ut.sha1(Buffer.from(salt))
-    if (Buffer.isBuffer(salt)) return salt.slice(0, ut.saltLen)
-    return false
-  },
   addContact: (table, id, loc) => {
     const contact = { id: id, loc: loc }
     ut.byteMatch(id, table.id, oq.match) || table.addContact(contact)
@@ -119,7 +113,6 @@ const go = {
       getPeers: pi.getPeers,
       putData: pi.putData,
       getData: pi.getData,
-      makeMutableSalt: ut.makeMutableSalt,
       makeMutableTarget: ut.makeMutableTarget,
       makeImmutableTarget: ut.makeImmutableTarget
     }
@@ -191,7 +184,7 @@ const pi = {
 
   getData: (target, mutableSalt, done, onV) => { oq.act('get', { target: target, mutableSalt: mutableSalt }, onV, null, null, done) },
 
-  putData: (v, mutableSalt, target, done, onV) => { return oq.act('get', { mutableSalt: mutableSalt }, onV, 'put', { v: v }, done) }
+  putData: (v, mutableSalt, resetTarget, done, onV) => { return oq.act('get', { target: resetTarget, mutableSalt: mutableSalt }, onV, 'put', { v: v }, done) }
 }
 
 // outgoing queries
@@ -271,12 +264,11 @@ const oq = {
 
   act: (pre, preArgs, onV, post, postArgs, done) => {
     let target
-    pre === 'get_peers' && (target = preArgs.info_hash)
-    pre === 'get' && (target = preArgs.target)
-    let salt = null; let mutable = false
-    preArgs.mutableSalt && (mutable = true)
-    Buffer.isBuffer(preArgs.mutableSalt) && (salt = preArgs.salt)
+    preArgs.info_hash && (target = preArgs.info_hash)
+    preArgs.target && (target = preArgs.target)
+    let mutable = preArgs.mutableSalt; let salt = null
     delete preArgs.mutableSalt
+    if (mutable && mutable !== true) { salt = Buffer.from(mutable).slice(0, ut.saltLen); mutable = true }
     if (post === 'put') {
       if (mutable) {
         salt && (postArgs.salt = salt)
@@ -290,7 +282,6 @@ const oq = {
         target = ut.makeImmutableTarget(postArgs.v)
       }
       preArgs.target = target
-      postArgs.target = target
     }
     const table = my.table.createTempTable(target)
     oq.populate(table, table.closestContacts().map((contact) => { return contact.loc }), (numVisited) => {
@@ -340,6 +331,7 @@ const oq = {
               if (mutable) {
                 postArgs.cas = res.seq
                 if (!postArgs.k) {
+                  postArgs.v = res.v
                   postArgs.seq = res.seq
                   postArgs.k = res.k
                   postArgs.sig = res.sig
@@ -352,7 +344,7 @@ const oq = {
         })
       })
     })
-    if (post === 'put') { return postArgs }
+    if (post === 'put') { postArgs.target = target; return postArgs }
   }
 }
 

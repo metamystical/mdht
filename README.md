@@ -1,8 +1,16 @@
-## mdht -- Mainline DHT
+## mdht.js -- Mainline DHT
 
-Dynamic Hash Table customized for the mainline DHT used by bittorrent to locate torrent peers without using a tracker. Currently uses only IPv4.
+Dynamic Hash Table customized for the mainline DHT used by bittorrent to locate torrent peers without using a tracker
+and including BEP44 data storage. IPv4 only.
 
-### Usage:
+### Terminology:
+
+location (loc) -- 6-byte buffer, network location (4-byte IPv4 address + 2-byte port)
+peer -- 6-byte buffer, location of a mainlne bittorrent client (TCP) that includes a DHT node, not always having the same port as its node
+id -- 20-byte buffer, a DHT node id or a torrent infohash
+node -- 26-byte buffer (20-byte id + 6-byte location), identfies and locates a DHT node
+
+### Usage (API):
 ```
 const dhtInit = require('mdht')
 const dht = dhtInit(options, update) // options is an object, update is a callback function
@@ -16,60 +24,65 @@ options:
 ```
 ```
 dhtInit returns an object with the following methods:
-  dht.announcePeer(ih, (numVisited, numAnnounced) => {})
-  dht.getPeers(ih, (peers, numVisited) => {})
-  dht.putData(v, salt, mutable, reset, (numVisited, numStored) => {}) // returns a
-  dht.getData(target, salt, (v, seq, numVisited, numFound) => {})
+  dht.announcePeer(ih, (numVisited, numAnnounced) => {}, onV)
+  dht.getPeers(ih, (numVisited, peers) => {}, onV)
+  dht.putData(v, mutableSalt, target, (numVisited, numStored) => {}, onV) // returns { target: (loc), etc }
+  dht.getData(target, mutableSalt, (numVisited, { v: (object), seq: (int), numFound: (int) }) => {}, onV)
   dht.makeSalt(string | buffer) // returns a valid salt buffer <= 64 bytes, given a string or buffer
   dht.makeMutableTarget(k, salt) // returns a mutable target
   dht.makeImmutableTarget(v) // returns an Immutable target
-  
+
   where:
-   ih -- infohash of a torrent (20-byte buffer)
-   target -- id of data stored in the DHT (20-byte buffer)
-   v -- value stored in the DHT by putData and returned by getData (object, buffer, string or number)
-   k -- public key (32-byte buffer)
-   salt -- if not null, used to vary the target of mutable data for a given public key (<= 64-byte buffer)
-   mutable -- true if mutable data, false if immutable (boolean)
-   a -- outgoing object with .v and .target, and if mutable: .salt (if used), .seq (sequence number), .k, .sig (ed25519 signature, 64-byte buffer)
-   reset -- if not null, a target (possibly obtained from elsewhere along with salt) to reset the timeout of previously stored mutable data
+    ih -- infohash of a torrent (20-byte buffer)
+    target -- id of data stored in the DHT (20-byte buffer); if not null in putData, used to reset the timeout of previously stored mutable data
+    mutableSalt -- false if immutable BEP44 data or true if mutable but no salt (boolean), or salt to vary the target of mutable data (<= 64-byte buffer)
+    v -- value stored in the DHT by putData and returned by getData (object, buffer, string or number)
+    seq -- sequence number of mutable data
+    k -- public key use to verify mutable data (32-byte buffer)
+    a -- outgoing object with .v and .target, and if mutable: .salt (if used), .seq (sequence number), .k, .sig (ed25519 signature, 64-byte buffer)
+    onV -- if not null or undefined, called whenever a value is received (a peer or BEP44 data) with arguments (target/ih, response object)
 ```
 ```
-update is a function to signal the calling program, called with two arguments key (string): value (type depends on key)
-  'id': same as options.id
-  'publicKey': same as k
-  'listening': udp socket address object, including .port (int)
-  'ready': number of nodes visited during bootstrap, signals bootstrap complete
-  'locs': buffer packed with node addresses from the routing table, each a 6-byte network location
-  'closest': array of node id buffers from the routing table, the closest nodes to the table id
-  'incoming': incoming query object, .q = query type (string), .rinfo = remote node object including .address and .port
-  'peers': object containing stored peer statistics, .numPeers = number of peers, .infohashes = number of infohashes
-  'data': number of stored BEP44 data items
-  'spam': detected spammer node, in 'address:port' form
-  'dropContact': node dropped from routing table, in { address: ..., port: ... } form
-  'dropPeer': peer dropped from storage, in { address: ..., port: ... } form
-  'dropData': data dropped from storage, in { address: ..., port: ... } form
-  'error': incoming object with .rinfo (see 'incoming') and .e, an array [ error code (int), error message (string)]
-  'udp': port number that failed to open, fatal error
+update is a function to signal the calling program, called with two arguments (key (string): value (type depends on key))
+  'udp': initialization failed, local port number that failed to open; calling program should restart with a different port
+  'id': initialized, id actually used to create routing table
+  'publicKey': initialized, public key value actually used for ed25519 signatures
+  'listening': local udp socket is listening, { address: (string), port: (int), etc }
+  'ready': bootstrap is complete, number of nodes visited during bootstrap,
+  'incoming': incoming query object, { q: query type (string), rinfo: remote node socket { address: (string), port: (int), etc } }
+  'error': incoming error object, { e: [error code (int), error message (string)], .rinfo: remote node socket { address: (string), port: (int), etc } }
+  'locs': periodic report, buffer packed with node locations from the routing table; may used for disk storage
+  'closest': periodic report, array of node id's from the routing table, the closest nodes to the table id
+  'peers': periodic report, { numPeers: number of stored peers, infohashes: number of stored infohashes }
+  'data': periodic report, number of BEP44 stored data items
+  'spam': detected spammer node, 'address:port'; temporarily blocked
+  'dropContact': node dropped from routing table, { address: (string), port: (int) }
+  'dropPeer': peer dropped from storage, { address: (string), port: (int) }
+  'dropData': data dropped from BEP44 storage, { address: (string), port: (int) }
 ```
 
 ### Example program test.js
-This program provides a command line interface for mdht.js as well as an interface with disk storage. The id, seed and boot locations are saved in separate files between sessions. Without these files, the DHT will use random values for nodeId and seed, but would require a boot location as a command line argument. Usage: `require('mdht/test.js')` alone in a file named, for example, `test.js`. 
+This program provides a command line interface for mdht.js as well as an interface with disk storage.
+The id, seed and boot locations are saved in separate files between sessions.
+Without these files, the DHT will use random values for nodeId and seed, but would require a boot location as a command line argument.
+Usage: `require('mdht/test.js')` alone in a file named, for example, `test.js`.
 
 ### shim.js interface with Webtorrent
-This program is a shim between mdht.js and [webtorrent](https://github.com/webtorrent/webtorrent) as a replacement for [bittorrent-dht](https://github.com/webtorrent/bittorrent-dht), which is problematic. [webtorrent/index.js](https://github.com/webtorrent/webtorrent/blob/master/index.js) needs to be modified locally in `node_modules/webtorrent` so that it requires `mdht/shim` rather than `bittorrent-dht/client`. Then, invoke webtorrent like so:
+This program is a shim between mdht.js and [webtorrent](https://github.com/webtorrent/webtorrent)
+as a replacement for [bittorrent-dht](https://github.com/webtorrent/bittorrent-dht), which is problematic.
+[webtorrent/index.js](https://github.com/webtorrent/webtorrent/blob/master/index.js) needs to be modified locally
+in `node_modules/webtorrent` so that it requires `mdht/shim` rather than `bittorrent-dht/client`. Then, invoke webtorrent like so:
 ```
 const WebTorrent = require('webtorrent')  // must modify webtorrent to require mdht/shim instead of bittorrent-dht/client
-const client = new WebTorrent({ torrentPort: port, dhtPort: port, dht: { nodeId: id, bootstrap: nodes, seed: seed } })
-  where `port` is a number and `id`, `nodes` and `seed` are buffers destined for mdht.js (see above).
+const client = new WebTorrent({ torrentPort: port, dhtPort: port, dht: { nodeId: id, bootstrap: bootLocs, seed: seed } })
+  where `port` is a port number and `id`, `bootLocs` and `seed` are buffers destined for mdht.js (see dhtInit options above).
 ```
 Then use (see [torr.js](https://github.com/metamystical/torr) for an example):
 ```
 client.dht.once('ready', function () { )) // bootstrap complete, ready for new torrents
-client.dht.on('nodes', function (nodes) { }) // periodic report of DHT routing table node locations for saving (see locs above) 
+client.dht.on('nodes', function (nodes) { }) // periodic report of DHT routing table node locations for saving (see locs above)
 client.dht.nodeId // actual nodeId used
-const a = client.dht.put(v, salt, function (numVisited, numStored) { }) // see above for v, salt and a
-client.dht.get(target, function (v, seq, numVisited, numFound) { } ) // see above for v, seq; target is returned by put
-  or computed from v (immutable) or k, salt (mutable) (see makeImmutableTarget and makeMutableTarget above)
+const a = client.dht.put(v, mutableSalt, target, function (numVisited, numStored) { })
+client.dht.get(target, mutableSalt, function (numVisited, { v: (object), seq: (int), numFound: (int) }) { } )
+  where target is returned by put (see putData above) or computed (see makeImmutableTarget and makeMutableTarget above)
 ```
-

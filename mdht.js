@@ -1,41 +1,14 @@
-// Syntax:
+// mdht.js -- Mainline DHT with BEP44 data storage. IPv4 only.
 //
-// const dhtInit = require('./mdht')
-// const dht = dhtInit(opts, update)
+// Terminology:
 //
-//  opts.port -- UDP server port (integer, default 6881)
-//  opts.id -- my node id (20-byte buffer, default random)
-//  opts.seed -- seed for generating ed25519 key pair for signing mutable data (32-byte buffer, default random)
-//  opts.bootLocs -- locations to contact at startup (buffer of concatenated 6-byte network locations, default empty)
+// location (loc) -- 6-byte buffer, network location (4-byte IPv4 address + 2-byte port)
+// peer -- 6-byte buffer, location of a mainlne bittorrent client (TCP) that includes a DHT node, not always having the same port as its node
+// id -- 20-byte buffer, a DHT node id or a torrent infohash
+// node -- 26-byte buffer (20-byte id + 6-byte location), identfies and locates a DHT node
+// contact -- object version of a node { id: 20-byte buffer, loc: 6-byte location bufer }
 //
-//  update -- function to signal the calling program, called with two arguments update(key, val)
-//   key -- type of signal (string)
-//   val -- data structure (type depends on key)
-//
-// dhtInit returns an object with the following methods:
-//
-//  dht.announcePeer(ih, (numVisited, numAnnounced) => {})
-//  dht.getPeers(ih, (peers, numVisited) => {})
-//  dht.putData(v, salt, mutable, reset, (numVisited, numStored) => {})
-//  dht.getData(target, salt, (v, seq, numVisited, numFound) => {})
-//  dht.makeSalt(str | buff) // returns a valid salt buffer <= ut.saltLen, given a string or buffer
-//  dht.makeMutableTarget(k, salt) // returns a mutable target
-//  dht.makeImmutableTarget(v) // returns an Immutable target
-//
-//   ih -- infohash of a torrent (20-byte buffer)
-//   target -- id of data stored in the DHT (20-byte buffer)
-//   v -- value stored in the DHT by putData and returned by getData (object, buffer, string or number)
-//   salt -- if not null, used to vary the target of mutable data for a given public key (<= 64-byte buffer)
-//   mutable -- true if mutable data, false if immutable (boolean)
-//   reset -- if not null, a target (possibly obtained from elsewhere along with salt) to reset the timeout of previously stored mutable data
-//   k -- public key (32-byte buffer)
-//
-// Terminolgy:
-//
-// location (loc) -- 6-byte network location buffer (4-byte IPv4 address + 2-byte port)
-// node -- 26-byte buffer (20-byte id + 6-byte location); identfies and locates a DHT node (UDP)
-// contact -- object version of a node {id: 20-byte buffer, loc: 6-byte location bufer}, where id is a DHT node id or a torrent infohash
-// peer -- 6-byte location of a mainlne bittorrent client (TCP) that includes a DHT node, not always having the same port as its node
+// See README.md for API description.
 
 const crypto = require('crypto')
 const dgram = require('dgram')
@@ -51,6 +24,7 @@ const ut = {
   keyLen: 32,
   sigLen: 64,
   saltLen: 64,
+  maxV: 1000,
   numClosest: 8,
 
   sha1: (buff) => { return crypto.createHash('sha1').update(buff).digest() },
@@ -163,14 +137,14 @@ const sr = {
     sr.udp.bind(sr.port)
     sr.udp.once('listening', () => { go.doUpdate('listening', sr.udp.address()); done() })
     sr.udp.once('error', (err) => { err && go.doUpdate('udp', sr.port) })
-    sr.udp.on('message', (data, rinfo) => { process.nextTick(sr.recv, data, rinfo) })
+    sr.udp.on('message', (mess, rinfo) => { process.nextTick(sr.recv, mess, rinfo) })
   },
 
   spamReset: () => { sr.spam = {} },
 
-  send: (message, loc) => { const { address, port } = ut.unmakeLoc(loc); port && sr.udp.send(message, port, address) },
+  send: (mess, loc) => { Buffer.isBuffer(loc) && (loc = ut.unmakeLoc(loc)); const { address, port } = loc; port && sr.udp.send(mess, port, address) },
 
-  recv: (data, rinfo) => {
+  recv: (mess, rinfo) => {
     if (rinfo.family !== 'IPv4') return
 
     const key = rinfo.address + ':' + rinfo.port
@@ -178,12 +152,11 @@ const sr = {
     if (sr.spam[key] === sr.spamLimit) go.doUpdate('spam', key)
     if (sr.spam[key] > sr.spamLimit) return
 
-    try { data = ben.decode(data) } catch (err) { data = null }
-    if (!data || !data.y) return
-    const y = data.y.toString()
-    if (y === 'q') iq.query(data, rinfo) // incoming unsolicited query, response expected
-    else if (y === 'r') oq.resp(data, rinfo) // incoming solicted response
-    else if (y === 'e' && data.e) go.doUpdate('error', { e: data.e, rinfo: rinfo }) // incoming error
+    try { mess = ben.decode(mess) } catch (err) { mess = null }
+    if (!mess || !mess.y) return
+    const y = mess.y.toString()
+    if (y === 'q') iq.query(mess, rinfo) // incoming unsolicited query, response expected
+    else if (y === 'r' || y === 'e') oq.resp(y, mess, rinfo) // incoming solicted response
   }
 }
 
@@ -212,67 +185,13 @@ const my = {
 
 // public interface
 const pi = {
-  getPeers: (ih, done, onV) => {
-    oq.act(ih, 'get_peers', { info_hash: ih }, onV, null, null, (data, numVisited) => {
-      let unique = Buffer.alloc(0); let peers = []
-      data.forEach((res) => {
-        if (!res.values) return
-        res.values.forEach((peer) => { if (!unique.includes(peer)) { unique = Buffer.concat([unique, peer]); peers.push(peer) } })
-      })
-      done(peers, numVisited)
-    })
-  },
+  getPeers: (ih, done, onV) => { oq.act('get_peers', { info_hash: ih }, onV, null, null, done) },
 
-  announcePeer: (ih, done, onV) => {
-    oq.act(ih, 'get_peers', { info_hash: ih }, onV, 'announce_peer', { info_hash: ih, port: sr.port, implied_port: 1 }, done)
-  },
+  announcePeer: (ih, done, onV) => { oq.act('get_peers', { info_hash: ih }, onV, 'announce_peer', { info_hash: ih, port: sr.port, implied_port: 1 }, done) },
 
-  getData: (target, salt, done, onV) => {
-    oq.act(target, 'get', { target: target }, onV, null, null, (results, numVisited) => {
-      let numFound = 0; let result = null; let seq = 0
-      results.forEach((res) => {
-        if (!res.v) return
-        if (res.seq || res.k || res.sig) { // mutable
-          if (!(res.seq && res.k && res.sig && res.k.length === ut.keyLen && res.sig.length === ut.sigLen)) return
-          if (!target.equals(ut.makeMutableTarget(res.k, salt))) return
-          if (!eds.verify(res.sig, ut.packSeqSalt(res.seq, res.v, salt), res.k)) return
-          if (res.seq > seq) {
-            seq = res.seq
-            result = res
-            numFound = 1
-          } else if (result && res.seq === result.seq) {
-            ++numFound
-          }
-        } else { // immutable
-          if (!target.equals(ut.makeImmutableTarget(res.v))) return
-          if (!result) result = res
-          ++numFound
-        }
-      })
-      done(result ? result.v : null, result ? result.seq : 0, numVisited, numFound)
-    })
-  },
+  getData: (target, mutableSalt, done, onV) => { oq.act('get', { target: target, mutableSalt: mutableSalt }, onV, null, null, done) },
 
-  putData: (v, salt, mutable, reset, done, onV) => {
-    const a = { v: v }
-    let target
-    if (mutable) {
-      a.mutable = true
-      salt && (a.salt = salt)
-      if (reset) {
-        target = reset
-      } else {
-        a.seq = ~~(Date.now() / 1000) // unix time in seconds
-        a.k = my.keyPair.publicKey
-        a.sig = eds.sign(ut.packSeqSalt(a.seq, v, salt), my.keyPair.publicKey, my.keyPair.secretKey)
-        target = ut.makeMutableTarget(a.k, salt)
-      }
-    } else {
-      target = ut.makeImmutableTarget(v)
-    }
-    oq.act(target, 'get', { target: target }, onV, 'put', a, done)
-    return a
-  }
+  putData: (v, mutableSalt, target, done, onV) => { return oq.act('get', { target: target, mutableSalt: mutableSalt }, onV, 'put', { v: v }, done) }
 }
 
 // outgoing queries
@@ -310,14 +229,19 @@ const oq = {
     sr.send(ben.encode(mess), loc)
   },
 
-  resp: (data, rinfo) => {
-    if (!data.t || !data.t.length === 2 || !data.r || !data.r.id) return
-    const t = ut.buff2ToInt(data.t).toString()
+  resp: (y, mess, rinfo) => {
+    if (!mess.t) return
+    if (!mess.t.length === 2 || !mess.r || !mess.r.id) return
+    const t = ut.buff2ToInt(mess.t).toString()
     if (Object.keys(oq.pendingQueries).includes(t)) {
-      ut.addContact(my.table, data.r.id, ut.makeLoc(rinfo.address, rinfo.port))
+      ut.addContact(my.table, mess.r.id, ut.makeLoc(rinfo.address, rinfo.port))
       const done = oq.pendingQueries[t].done
       delete oq.pendingQueries[t]
-      done(data.r)
+      if (y === 'r') done(mess.r)
+      else if (mess.e) {
+        done(null)
+        go.doUpdate('error', { e: mess.e, rinfo: rinfo })
+      }
     }
   },
 
@@ -345,27 +269,76 @@ const oq = {
     pending || done(visited.length / ut.locLen)
   },
 
-  act: (target, pre, preArgs, onV, post, postArgs, done) => {
+  act: (pre, preArgs, onV, post, postArgs, done) => {
+    let target
+    pre === 'get_peers' && (target = preArgs.info_hash)
+    pre === 'get' && (target = preArgs.target)
+    let salt = null; let mutable = false
+    preArgs.mutableSalt && (mutable = true)
+    Buffer.isBuffer(preArgs.mutableSalt) && (salt = preArgs.salt)
+    delete preArgs.mutableSalt
+    let a = null
+    if (post === 'put') {
+      const v = postArgs.v
+      a = { v: v }
+      if (mutable) {
+        salt && (a.salt = salt)
+        if (!target) {
+          a.seq = ~~(Date.now() / 1000) // unix time in seconds
+          a.k = my.keyPair.publicKey
+          a.sig = eds.sign(ut.packSeqSalt(a.seq, v, salt), my.keyPair.publicKey, my.keyPair.secretKey)
+          target = ut.makeMutableTarget(a.k, salt)
+        }
+      } else {
+        target = ut.makeImmutableTarget(v)
+      }
+    }
     const table = my.table.createTempTable(target)
     oq.populate(table, table.closestContacts().map((contact) => { return contact.loc }), (numVisited) => {
-      let pending = 0; let data = []; let numStored = 0
+      let pending = 0; let unique = Buffer.alloc(); let peers = null; let numStored = 0; let numFound = 0; let value = null; let seq = 0
+
       const finish = () => {
         if (--pending > 0) return
-        post ? done(numVisited, numStored) : done(data, numVisited)
+        if (post) done(numVisited, numStored)
+        else if (peers) done(numVisited, peers)
+        else if (value !== null) done(numVisited, { v: value, seq: seq, numFound: numFound })
+        else done(null, 0)
       }
       table.closestContacts().forEach((contact) => {
         ++pending
         oq.query(pre, preArgs, contact.loc, (res) => { // get values and token
           if (res) {
-            if (res.v || res.values) {
-              data.push(res)
-              onV && onV(res, target)
+            if (res.v) { // get
+              if (ben.encode(res.v).length > ut.maxV) { finish(); return }
+              if (res.seq || res.k || res.sig) { // mutable
+                if (!(res.seq && res.k && res.sig && res.k.length === ut.keyLen && res.sig.length === ut.sigLen)) { finish(); return }
+                if (!target.equals(ut.makeMutableTarget(res.k, salt))) { finish(); return }
+                if (!eds.verify(res.sig, ut.packSeqSalt(res.seq, res.v, salt), res.k)) { finish(); return }
+                if (res.seq > seq) {
+                  seq = res.seq
+                  value = res.v
+                  numFound = 1
+                } else if (value && res.seq === value.seq) {
+                  ++numFound
+                }
+              } else { // immutable
+                if (!target.equals(ut.makeImmutableTarget(res.v))) { finish(); return }
+                if (!value) value = res.v
+                ++numFound
+              }
+              if (onV) onV(res, target)
+            }
+            if (res.values) {
+              let err = null; res.values.forEach((peer) => { if (peer.length !== ut.locLen) err = true })
+              if (err) { finish(); return }
+              !peers || (peers = [])
+              res.values.forEach((peer) => { if (!unique.includes(peer)) { unique = Buffer.concat([unique, peer]); peers.push(peer) } })
+              if (onV) onV(res, target)
             }
             if (res.token && post) { // use token to store peers or data
               ++pending
               postArgs.token = res.token
-              if (postArgs.mutable) {
-                delete postArgs.mutable
+              if (mutable) {
                 postArgs.cas = res.seq
                 if (!postArgs.k) {
                   postArgs.seq = res.seq
@@ -380,6 +353,7 @@ const oq = {
         })
       })
     })
+    if (post === 'put') { a.target = target; return a }
   }
 }
 
@@ -391,23 +365,25 @@ const iq = {
 
   newSecret: () => { iq.oldSecret = iq.secret; iq.secret = ut.random(ut.idLen) },
 
-  query: (data, rinfo) => {
+  query: (mess, rinfo) => {
+    const sendErr = (code, msg, tag, loc) => { sr.send(ben.encode({ t: tag, y: 'e', e: [code, msg] }), loc) }
     const contactsToNodes = (contacts) => {
       let nodes = []; let num = 0
       contacts.forEach((contact) => { nodes.push(contact.id, contact.loc); ++num })
       return Buffer.concat(nodes, num * ut.nodeLen)
     }
     const getNodes = (target) => { return contactsToNodes(my.table.createTempTable(target).closestContacts().slice(0, ut.numClosest)) }
-    const sendErr = (code, msg) => { sr.send(ben.encode({ t: data.t, y: 'e', e: [code, msg] }), contact.loc) }
-    if (!data.t || !data.q || !data.a) return
-    const q = data.q.toString()
+    if (!mess.t) return
+    const t = mess.t
+    if (!mess.q || !mess.a) { sendErr(203, 'Protocol error', t, rinfo); return }
+    const q = mess.q.toString()
     go.doUpdate('incoming', { q: q, rinfo: rinfo })
-    const resp = { t: data.t, y: 'r', r: { id: my.id } }
-    const a = data.a
-    if (!a.id || a.id.length !== ut.idLen) return
+    const resp = { t: t, y: 'r', r: { id: my.id } }
+    const a = mess.a
+    if (!a.id || a.id.length !== ut.idLen) { sendErr(203, 'Protocol error', t, rinfo); return }
     let target = a.target || a.info_hash
-    if (target && target.length !== ut.idLen) return
-    if (!target && q !== 'put') return
+    if (target && target.length !== ut.idLen) { sendErr(203, 'Protocol error', t, rinfo); return }
+    if (!target && q !== 'put') { sendErr(203, 'Protocol error', t, rinfo); return }
     const contact = ut.addContact(my.table, a.id, ut.makeLoc(rinfo.address, rinfo.port))
     const node = contactsToNodes([contact])
     const token = ut.sha1(Buffer.concat([node, iq.secret]))
@@ -421,10 +397,11 @@ const iq = {
       const peers = ps.getPeers(target)
       peers ? (resp.r.values = peers) : (resp.r.nodes = getNodes(target))
     } else if (q === 'announce_peer') {
-      if (!validToken || !ut.byteMatch(target, my.id, iq.match)) return
+      if (!validToken) { sendErr(203, 'Protocol error', t, rinfo); return }
+      if (!ut.byteMatch(target, my.id, iq.match)) return
       let peer
       if (!a.implied_port || a.implied_port !== 1) {
-        if (!a.port) return
+        if (!a.port) { sendErr(203, 'Missing port', t, rinfo); return }
         peer = ut.makeLoc(rinfo.address, a.port)
       } else peer = contact.loc
       ps.putPeer(target, peer)
@@ -434,22 +411,24 @@ const iq = {
       datum && (a.seq ? datum.seq > a.seq : true) && Object.assign(resp.r, datum)
       resp.r.nodes = getNodes(a.target)
     } else if (q === 'put') {
-      if (!validToken || !a.v || a.v.length > 1000) return
+      if (!validToken) { sendErr(203, 'Invalid token', t, rinfo); return }
+      if (!a.v) { sendErr(203, 'Missing v', t, rinfo); return }
+      if (ben.encode(a.v).length > ut.maxV) { sendErr(205, 'Message (v) too big', t, rinfo); return }
       let datum
       if (a.k && a.seq && a.sig) { // mutable
-        if (a.k.length !== ut.keyLen || a.sig.length !== ut.sigLen) return
-        if (!eds.verify(a.sig, ut.packSeqSalt(a.seq, a.v, a.salt), a.k)) return
+        if (a.k.length !== ut.keyLen || a.sig.length !== ut.sigLen) { sendErr(203, 'Protocol error', t, rinfo); return }
+        if (!eds.verify(a.sig, ut.packSeqSalt(a.seq, a.v, a.salt), a.k)) { sendErr(206, 'Invalid signature', t, rinfo); return }
         target = a.k
         if (a.salt) {
-          if (a.salt.length > ut.saltLen) return
+          if (a.salt.length > ut.saltLen) { sendErr(207, 'Salt too big', t, rinfo); return }
           target = Buffer.concat([target, a.salt])
         }
         target = ut.sha1(target)
         const oldDatum = ds.getData(target)
         if (oldDatum) {
-          if (a.hasOwnProperty('cas') && a.cas !== oldDatum.seq) { sendErr(301, 'Invalid CAS'); return }
-          if (oldDatum.seq > a.seq) return
-          if (oldDatum.seq === a.seq && !ben.encode(oldDatum.v).equals(ben.encode(a.v))) return
+          if (a.hasOwnProperty('cas') && a.cas !== oldDatum.seq) { sendErr(301, 'CAS mismatch', t, rinfo); return }
+          if (oldDatum.seq > a.seq) { sendErr(302, 'Sequence number too small', t, rinfo); return }
+          if (oldDatum.seq === a.seq && !ben.encode(oldDatum.v).equals(ben.encode(a.v))) { sendErr(302, 'Sequence number too small', t, rinfo); return }
         }
         datum = { v: a.v, k: a.k, seq: a.seq, sig: a.sig }
       } else { // immutable
@@ -528,5 +507,3 @@ const ds = {
 }
 
 module.exports = go.init
-
-// err messages?

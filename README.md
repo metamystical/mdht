@@ -40,7 +40,7 @@ dhtInit returns an object with the following methods:
     v -- value stored in the DHT by putData and returned by getData (object, buffer, string or number)
     seq -- sequence number of mutable data
     k -- public key use to verify mutable data (32-byte buffer)
-    ret -- object with .target and applicable outgoing arguments .v, .salt, .seq (sequence number), .k, .sig (ed25519 signature, 64-byte buffer), all as actually used
+    ret -- object with .target and applicable outgoing arguments .v, .salt, .seq, .k, .sig (ed25519 signature, 64-byte buffer), all as actually used
     onV -- if not null or undefined, called whenever a value is received (a peer or BEP44 data) with arguments (target/ih, response object)
 ```
 ```

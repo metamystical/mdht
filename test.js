@@ -124,7 +124,7 @@ function next () {
   //  else console.log('=> no peers found')
   // })
 
-  // const v = {m: 'JEB', f: 'MLK'}; const mutableSalt = dht.makeSalt('salt')
+  // const v = {m: 'JEB', f: 'MLK'}; const mutableSalt = dht.makeMutableSalt('salt')
   // console.log('a:', dht.putData(v, false, null, (numVisited, numStored) => { console.log('put:', numVisited, numStored) }))
   // let target = dht.makeImmutableTarget(v); console.log('target', target.toString('hex'))
   // dht.getData(target, false, (numVisited, value) => { console.log('get:', numVisited, value) })

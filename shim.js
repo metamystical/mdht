@@ -22,7 +22,7 @@ const update = (key, val) => {
     case 'udp': console.log('fatal error opening port => ' + val); process.exit(0)
   }
 }
-const onPeers = (res, infohash) => {
+const onPeers = (infohash, res) => {
   res && res.values && res.values.forEach((peer) => { instanceDHT.emit('peer', unmakeLoc(peer), infohash.toString('hex')) })
 }
 
@@ -42,5 +42,5 @@ DHT.prototype.address = () => { return udpAddress }
 DHT.prototype.announce = (infoHash, port, done) => { dht.announcePeer(Buffer.from(infoHash, 'hex'), done, onPeers) }
 DHT.prototype.destroy = (done) => { process.exit(0) }
 DHT.prototype.addNode = (obj) => { }
-DHT.prototype.put = (v, salt, done) => { return dht.putData(v, salt, true, null, done) }
-DHT.prototype.get = (target, done) => { dht.getData(target, null, done) }
+DHT.prototype.put = dht.putData
+DHT.prototype.get = dht.getData

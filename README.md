@@ -27,7 +27,7 @@ dhtInit returns an object with the following methods:
   dht.announcePeer(ih, (numVisited, numAnnounced) => {}, onV)
   dht.getPeers(ih, (numVisited, peers) => {}, onV)
   dht.putData(v, mutableSalt, target, (numVisited, numStored) => {}, onV) // returns { target: (loc), etc }
-  dht.getData(target, mutableSalt, (numVisited, { v: (object), seq: (int), numFound: (int) }) => {}, onV)
+  dht.getData(target, mutableSalt, (numVisited, { v: (object), seq: (int), numFound: (int) } or null if not found) => {}, onV)
   dht.makeSalt(string | buffer) // returns a valid salt buffer <= 64 bytes, given a string or buffer
   dht.makeMutableTarget(k, salt) // returns a mutable target
   dht.makeImmutableTarget(v) // returns an Immutable target

@@ -65,7 +65,13 @@ const ut = {
     ut.byteMatch(id, table.id, oq.match) || table.addContact(contact)
     return contact
   },
-  makeMutableTarget: (k, salt) => { return ut.sha1(salt ? Buffer.concat([k, salt]) : k) },
+  makeMutableTarget: (k, mutableSalt) => {
+    if (mutableSalt) {
+      if (mutableSalt !== true) mutableSalt = Buffer.from(mutableSalt).slice(0, ut.saltLen)
+      else mutableSalt = false
+    }
+    return ut.sha1(mutableSalt ? Buffer.concat([k, mutableSalt]) : k)
+  },
   makeImmutableTarget: (v) => { return ut.sha1(ben.encode(v)) },
   packSeqSalt: (seq, v, salt) => {
     const es = (obj) => { return ben.encode(obj).slice(1, -1) }
@@ -308,7 +314,7 @@ const oq = {
                   seq = res.seq
                   value = res.v
                   numFound = 1
-                } else if (value && res.seq === value.seq) {
+                } else if (value && res.seq === seq) {
                   ++numFound
                 }
               } else { // immutable
@@ -488,7 +494,6 @@ const ds = {
   putData: (target, data) => {
     data.time = Date.now()
     ds.data[ut.buffToHex(target)] = data
-    console.log(ds.data)
   },
 
   getData: (target) => {

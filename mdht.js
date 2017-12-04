@@ -60,7 +60,7 @@ const ut = {
     for (let i = 0; i < 4; i++) str += loc[i] + (i < 3 ? '.' : '')
     return { address: str, port: ut.buff2ToInt(loc.slice(4)) }
   },
-  makeSalt: (salt) => {
+  makeMutableSalt: (salt) => {
     if (!salt) return false
     if (typeof salt === 'string') return ut.sha1(Buffer.from(salt))
     if (Buffer.isBuffer(salt)) return salt.slice(0, ut.saltLen)
@@ -119,7 +119,7 @@ const go = {
       getPeers: pi.getPeers,
       putData: pi.putData,
       getData: pi.getData,
-      makeSalt: ut.makeSalt,
+      makeMutableSalt: ut.makeMutableSalt,
       makeMutableTarget: ut.makeMutableTarget,
       makeImmutableTarget: ut.makeImmutableTarget
     }

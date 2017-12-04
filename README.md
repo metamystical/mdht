@@ -36,7 +36,7 @@ dhtInit returns an object with the following methods:
     ih -- infohash of a torrent (20-byte buffer)
     target -- id of data stored in the DHT (20-byte buffer)
     resetTarget -- if not null, used to reset the timeout of previously stored mutable data (v ignored in this case), may be obtained from third party
-    mutableSalt -- false if immutable BEP44 data or true if mutable but no salt (boolean), or salt (utf-8 string or buffer <= 64-bytes) which implies mutable
+    mutableSalt -- false or '' if immutable BEP44 data or true if mutable but no salt, or salt (non-empty string or buffer <= 64-bytes) which implies mutable
     v -- value stored in the DHT by putData and returned by getData (object, buffer, string or number)
     seq -- sequence number of mutable data
     k -- public key use to verify mutable data (32-byte buffer)

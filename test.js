@@ -116,15 +116,18 @@ function update (key, val) {
 }
 
 function next () {
-  // const ih = Buffer.from('23ce1b2a9bee37d8fa1e6cc19be248afb5c61c17', 'hex'); console.log('ih', ih.toString('hex'))
+  // const ih = Buffer.from('3663c233ac0e1d329f538bab02128ba2c396467a', 'hex'); console.log('ih', ih.toString('hex'))
   // dht.announcePeer(ih, (numVisited, numAnnounced) => { console.log('visited:', numVisited, 'announced:', numAnnounced) })
   // dht.getPeers(ih, (numVisited, peers) => {
-  //  console.log('visited:', numVisited, 'peers', peers.length); peers.forEach((peer) => { console.log(peer.toString('hex')) })
+  //  console.log('nodes visited:', numVisited)
+  //  if (peers) { console.log('=> peers', peers.length); peers.forEach((peer) => { console.log(peer.toString('hex')) }) }
+  //  else console.log('=> no peers found')
   // })
-  // const v = {m: 'JEB', f: 'MLK'}; const mutalbe_salt = null // dht.makeSalt('salt')
+
+  // const v = {m: 'JEB', f: 'MLK'}; const mutableSalt = dht.makeSalt('salt')
   // console.log('a:', dht.putData(v, false, null, (numVisited, numStored) => { console.log('put:', numVisited, numStored) }))
   // let target = dht.makeImmutableTarget(v); console.log('target', target.toString('hex'))
-  // dht.getData(target, mutableSalt, (numVisited, value) => { console.log('get:', value, numVisited) })
+  // dht.getData(target, false, (numVisited, value) => { console.log('get:', numVisited, value) })
 
   // console.log(dht.putData(v, mutableSalt, null, (numVisited, numStored) => { console.log('put:', numVisited, numStored) }))
   // target = dht.makeMutableTarget(pKey, salt); console.log('target', target.toString('hex'))

@@ -8,7 +8,7 @@ and including BEP44 data storage. IPv4 only.
 location (loc) -- 6-byte buffer, network location (4-byte IPv4 address + 2-byte port)
 peer -- 6-byte buffer, location of a mainlne bittorrent client (TCP) that includes a DHT node, not always having the same port as its node
 id -- 20-byte buffer, a DHT node id or a torrent infohash
-node -- 26-byte buffer (20-byte id + 6-byte location), identfies and locates a DHT node
+node -- 26-byte buffer (20-byte id + 6-byte location), identfies and locates a DHT node (UDP)
 contact -- object version of a node { id: 20-byte buffer, loc: 6-byte location bufer }
 ```
 ### Usage (API):

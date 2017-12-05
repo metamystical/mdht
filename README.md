@@ -45,7 +45,7 @@ target | id of data stored in the DHT (20-byte buffer)
 resetTarget | if not null, used to reset the timeout of previously stored mutable data (v ignored in this case), may be obtained from third party
 mutableSalt | false or '' if immutable BEP44 data or true if mutable but no salt, or salt (non-empty string or buffer <= 64-bytes) which implies mutable
 v | value stored in the DHT by putData and returned by getData (object, buffer, string or number)
-seq | sequence number of mutable data
+seq | sequence number (int) of mutable data
 k | public key use to verify mutable data (32-byte buffer)
 ret | object with .target and applicable outgoing arguments .v, .salt, .seq, .k, .sig (ed25519 signature, 64-byte buffer), all as actually used
 onV | if not null or undefined, called whenever a value is received (a peer or BEP44 data) with arguments (target/ih, response object)
@@ -54,7 +54,7 @@ onV | if not null or undefined, called whenever a value is received (a peer or B
 
 key | signal | value
 ----|--------|------
-'udp' | initialization failed | local port number that failed to open; calling program should restart with a different port
+'udp' | initialization failed | local port (int) that failed to open; calling program should restart with a different port
 'id' | initialized | id (buffer) actually used to create routing table
 'publicKey' | initialized | public key (buffer) actually used for ed25519 signatures
 'listening' | local udp socket is listening | { address: (string), port: (int), etc }
@@ -83,7 +83,9 @@ as a replacement for [bittorrent-dht](https://github.com/webtorrent/bittorrent-d
 [webtorrent/index.js](https://github.com/webtorrent/webtorrent/blob/master/index.js) needs to be modified locally
 in `node_modules/webtorrent` so that it requires `mdht/shim` rather than `bittorrent-dht/client`. Then, invoke webtorrent like so:
 ```
-const WebTorrent = require('webtorrent')  // must modify webtorrent to require mdht/shim instead of bittorrent-dht/client
+const WebTorrent = require('webtorrent')
+// must modify webtorrent to require mdht/shim instead of bittorrent-dht/client
+
 const client = new WebTorrent({ torrentPort: port, dhtPort: port, dht: { nodeId: id, bootstrap: bootLocs, seed: seed } })
 // `port` is a port number and `id`, `bootLocs` and `seed` are buffers destined for mdht.js (see dhtInit options above).
 ```
@@ -91,9 +93,14 @@ const client = new WebTorrent({ torrentPort: port, dhtPort: port, dht: { nodeId:
 Then use (see [torr.js](https://github.com/metamystical/torr) for an example):
 ```
 client.dht.once('ready', function () { )) // bootstrap complete, ready for new torrents
-client.dht.on('nodes', function (nodes) { }) // periodic report of DHT routing table node locations for saving (see locs above)
+
+client.dht.on('nodes', function (nodes) { })
+// periodic report of DHT routing table node locations for saving (see locs above)
+
 client.dht.nodeId // actual nodeId used
 const ret = client.dht.put(v, mutableSalt, resetTarget, function (numVisited, numStored) { })
+
 client.dht.get(target, mutableSalt, function (numVisited, { v: (object), seq: (int), numFound: (int) }) { } )
-// target is returned by put (see putData above) or computed (see makeImmutableTarget and makeMutableTarget above) or obtained from a third party
+// target is returned by put (see putData above) or computed 
+// (see makeImmutableTarget and makeMutableTarget above) or obtained from a third party
 ```

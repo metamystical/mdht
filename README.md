@@ -16,14 +16,14 @@ contact -- object version of a node { id: 20-byte buffer, loc: 6-byte location b
 const dhtInit = require('mdht')
 const dht = dhtInit(options, update) // options is an object, update is a callback function
 ```
-options:
+#### options:
 ```
 options.port -- UDP server port (integer, default 6881)
 options.id -- my node id (20-byte buffer, default random)
 options.seed -- seed for generating ed25519 key pair for signing mutable data (32-byte buffer, default random)
 options.bootLocs -- locations to contact at startup (buffer of concatenated 6-byte network locations, default empty)
 ```
-dhtInit returns an object with the following methods:
+#### dhtInit returns an object with the following methods:
 ```
 dht.announcePeer(ih, (numVisited, numAnnounced) => {}, onV)
 dht.getPeers(ih, (numVisited, peers) => {}, onV)
@@ -32,7 +32,7 @@ dht.getData(target, mutableSalt, (numVisited, { v: (object), seq: (int), numFoun
 dht.makeMutableTarget(k, mutableSalt) // returns a mutable target
 dht.makeImmutableTarget(v) // returns an Immutable target
 ```
-where:
+##### where:
 ```
 ih -- infohash of a torrent (20-byte buffer)
 target -- id of data stored in the DHT (20-byte buffer)
@@ -44,7 +44,7 @@ k -- public key use to verify mutable data (32-byte buffer)
 ret -- object with .target and applicable outgoing arguments .v, .salt, .seq, .k, .sig (ed25519 signature, 64-byte buffer), all as actually used
 onV -- if not null or undefined, called whenever a value is received (a peer or BEP44 data) with arguments (target/ih, response object)
 ```
-update is a function to signal the calling program, called with two arguments (key (string): value (type depends on key))
+#### update is a function to signal the calling program, called with two arguments (key (string): value (type depends on key))
 ```
 'udp': initialization failed, local port number that failed to open; calling program should restart with a different port
 'id': initialized, id actually used to create routing table

@@ -78,6 +78,7 @@ const WebTorrent = require('webtorrent')  // must modify webtorrent to require m
 const client = new WebTorrent({ torrentPort: port, dhtPort: port, dht: { nodeId: id, bootstrap: bootLocs, seed: seed } })
   where `port` is a port number and `id`, `bootLocs` and `seed` are buffers destined for mdht.js (see dhtInit options above).
 ```
+
 Then use (see [torr.js](https://github.com/metamystical/torr) for an example):
 ```
 client.dht.once('ready', function () { )) // bootstrap complete, ready for new torrents

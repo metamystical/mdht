@@ -33,8 +33,8 @@ dht.announcePeer(ih, (numVisited, numAnnounced) => {}, onV)
 dht.getPeers(ih, (numVisited, peers) => {}, onV)
 dht.putData(v, mutableSalt, resetTarget, (numVisited, numStored) => {}, onV) // returns 'ret' object
 dht.getData(target, mutableSalt, (numVisited, { v: (object), seq: (int), numFound: (int) } or null if not found) => {}, onV)
-dht.makeMutableTarget(k, mutableSalt) // returns a mutable target
-dht.makeImmutableTarget(v) // returns an Immutable target
+dht.makeMutableTarget(k, mutableSalt)
+dht.makeImmutableTarget(v)
 ```
 ##### where:
 

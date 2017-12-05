@@ -514,6 +514,3 @@ const ds = {
 }
 
 module.exports = go.init
-
-// check socket activity when not connected to internet
-// monitor outgoing errors

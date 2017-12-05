@@ -16,50 +16,51 @@ contact -- object version of a node { id: 20-byte buffer, loc: 6-byte location b
 const dhtInit = require('mdht')
 const dht = dhtInit(options, update) // options is an object, update is a callback function
 ```
-```
 options:
-  options.port -- UDP server port (integer, default 6881)
-  options.id -- my node id (20-byte buffer, default random)
-  options.seed -- seed for generating ed25519 key pair for signing mutable data (32-byte buffer, default random)
-  options.bootLocs -- locations to contact at startup (buffer of concatenated 6-byte network locations, default empty)
 ```
+options.port -- UDP server port (integer, default 6881)
+options.id -- my node id (20-byte buffer, default random)
+options.seed -- seed for generating ed25519 key pair for signing mutable data (32-byte buffer, default random)
+options.bootLocs -- locations to contact at startup (buffer of concatenated 6-byte network locations, default empty)
 ```
 dhtInit returns an object with the following methods:
-  dht.announcePeer(ih, (numVisited, numAnnounced) => {}, onV)
-  dht.getPeers(ih, (numVisited, peers) => {}, onV)
-  dht.putData(v, mutableSalt, resetTarget, (numVisited, numStored) => {}, onV) // returns 'ret' object
-  dht.getData(target, mutableSalt, (numVisited, { v: (object), seq: (int), numFound: (int) } or null if not found) => {}, onV)
-  dht.makeMutableTarget(k, mutableSalt) // returns a mutable target
-  dht.makeImmutableTarget(v) // returns an Immutable target
-
-  where:
-    ih -- infohash of a torrent (20-byte buffer)
-    target -- id of data stored in the DHT (20-byte buffer)
-    resetTarget -- if not null, used to reset the timeout of previously stored mutable data (v ignored in this case), may be obtained from third party
-    mutableSalt -- false or '' if immutable BEP44 data or true if mutable but no salt, or salt (non-empty string or buffer <= 64-bytes) which implies mutable
-    v -- value stored in the DHT by putData and returned by getData (object, buffer, string or number)
-    seq -- sequence number of mutable data
-    k -- public key use to verify mutable data (32-byte buffer)
-    ret -- object with .target and applicable outgoing arguments .v, .salt, .seq, .k, .sig (ed25519 signature, 64-byte buffer), all as actually used
-    onV -- if not null or undefined, called whenever a value is received (a peer or BEP44 data) with arguments (target/ih, response object)
 ```
+dht.announcePeer(ih, (numVisited, numAnnounced) => {}, onV)
+dht.getPeers(ih, (numVisited, peers) => {}, onV)
+dht.putData(v, mutableSalt, resetTarget, (numVisited, numStored) => {}, onV) // returns 'ret' object
+dht.getData(target, mutableSalt, (numVisited, { v: (object), seq: (int), numFound: (int) } or null if not found) => {}, onV)
+dht.makeMutableTarget(k, mutableSalt) // returns a mutable target
+dht.makeImmutableTarget(v) // returns an Immutable target
+```
+where:
+```
+ih -- infohash of a torrent (20-byte buffer)
+target -- id of data stored in the DHT (20-byte buffer)
+resetTarget -- if not null, used to reset the timeout of previously stored mutable data (v ignored in this case), may be obtained from third party
+mutableSalt -- false or '' if immutable BEP44 data or true if mutable but no salt, or salt (non-empty string or buffer <= 64-bytes) which implies mutable
+v -- value stored in the DHT by putData and returned by getData (object, buffer, string or number)
+seq -- sequence number of mutable data
+k -- public key use to verify mutable data (32-byte buffer)
+ret -- object with .target and applicable outgoing arguments .v, .salt, .seq, .k, .sig (ed25519 signature, 64-byte buffer), all as actually used
+onV -- if not null or undefined, called whenever a value is received (a peer or BEP44 data) with arguments (target/ih, response object)
 ```
 update is a function to signal the calling program, called with two arguments (key (string): value (type depends on key))
-  'udp': initialization failed, local port number that failed to open; calling program should restart with a different port
-  'id': initialized, id actually used to create routing table
-  'publicKey': initialized, public key value actually used for ed25519 signatures
-  'listening': local udp socket is listening, { address: (string), port: (int), etc }
-  'ready': bootstrap is complete, number of nodes visited during bootstrap,
-  'incoming': incoming query object, { q: query type (string), rinfo: remote node socket { address: (string), port: (int), etc } }
-  'error': incoming error object, { e: [error code (int), error message (string)], .rinfo: remote node socket { address: (string), port: (int), etc } }
-  'locs': periodic report, buffer packed with node locations from the routing table; may used for disk storage
-  'closest': periodic report, array of node id's from the routing table, the closest nodes to the table id
-  'peers': periodic report, { numPeers: number of stored peers, infohashes: number of stored infohashes }
-  'data': periodic report, number of BEP44 stored data items
-  'spam': detected spammer node, 'address:port'; temporarily blocked
-  'dropContact': node dropped from routing table, { address: (string), port: (int) }
-  'dropPeer': peer dropped from storage, { address: (string), port: (int) }
-  'dropData': data dropped from BEP44 storage, { address: (string), port: (int) }
+```
+'udp': initialization failed, local port number that failed to open; calling program should restart with a different port
+'id': initialized, id actually used to create routing table
+'publicKey': initialized, public key value actually used for ed25519 signatures
+'listening': local udp socket is listening, { address: (string), port: (int), etc }
+'ready': bootstrap is complete, number of nodes visited during bootstrap,
+'incoming': incoming query object, { q: query type (string), rinfo: remote node socket { address: (string), port: (int), etc } }
+'error': incoming error object, { e: [error code (int), error message (string)], .rinfo: remote node socket { address: (string), port: (int), etc } }
+'locs': periodic report, buffer packed with node locations from the routing table; may used for disk storage
+'closest': periodic report, array of node id's from the routing table, the closest nodes to the table id
+'peers': periodic report, { numPeers: number of stored peers, infohashes: number of stored infohashes }
+'data': periodic report, number of BEP44 stored data items
+'spam': detected spammer node, 'address:port'; temporarily blocked
+'dropContact': node dropped from routing table, { address: (string), port: (int) }
+'dropPeer': peer dropped from storage, { address: (string), port: (int) }
+'dropData': data dropped from BEP44 storage, { address: (string), port: (int) }
 ```
 
 ### test.js example program

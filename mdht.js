@@ -230,14 +230,14 @@ const oq = {
 
   resp: (y, mess, rinfo) => {
     if (!mess.t) return
-    if (!mess.t.length === 2 || !mess.r || !mess.r.id) return
+    if (!mess.t.length === 2 || y === 'r' && !(mess.r && mess.r.id) || y === 'e' && !mess.e ) return
     const t = ut.buff2ToInt(mess.t).toString()
     if (Object.keys(oq.pendingQueries).includes(t)) {
-      ut.addContact(my.table, mess.r.id, ut.makeLoc(rinfo.address, rinfo.port))
+      if (y === 'r') ut.addContact(my.table, mess.r.id, ut.makeLoc(rinfo.address, rinfo.port))
       const done = oq.pendingQueries[t].done
       delete oq.pendingQueries[t]
       if (y === 'r') done(mess.r)
-      else if (mess.e) {
+      else if (y === 'e') {
         done(null)
         go.doUpdate('error', { e: mess.e, rinfo: rinfo })
       }
@@ -272,7 +272,7 @@ const oq = {
     let target
     preArgs.info_hash && (target = preArgs.info_hash)
     preArgs.target && (target = preArgs.target)
-    let mutable = preArgs.mutableSalt; let salt = null
+    let mutable = preArgs.mutableSalt; let salt = false
     delete preArgs.mutableSalt
     if (mutable && mutable !== true) { salt = Buffer.from(mutable).slice(0, ut.saltLen); mutable = true }
     if (post === 'put') {
@@ -363,7 +363,7 @@ const iq = {
   newSecret: () => { iq.oldSecret = iq.secret; iq.secret = ut.random(ut.idLen) },
 
   query: (mess, rinfo) => {
-    const sendErr = (code, msg, tag, loc) => { sr.send(ben.encode({ t: tag, y: 'e', e: [code, msg] }), loc) }
+    const sendErr = (code, msg) => { sr.send(ben.encode({ t: mess.t, y: 'e', e: [code, msg] }), rinfo) }
     const contactsToNodes = (contacts) => {
       let nodes = []; let num = 0
       contacts.forEach((contact) => { nodes.push(contact.id, contact.loc); ++num })
@@ -371,16 +371,17 @@ const iq = {
     }
     const getNodes = (target) => { return contactsToNodes(my.table.createTempTable(target).closestContacts().slice(0, ut.numClosest)) }
     if (!mess.t) return
-    const t = mess.t
-    if (!mess.q || !mess.a) { sendErr(203, 'Protocol error', t, rinfo); return }
+    if (!mess.q) { sendErr(203, 'Missing q'); return }
+    if (!mess.a) { sendErr(203, 'Missing a'); return }
     const q = mess.q.toString()
     go.doUpdate('incoming', { q: q, rinfo: rinfo })
-    const resp = { t: t, y: 'r', r: { id: my.id } }
+    const resp = { t: mess.t, y: 'r', r: { id: my.id } }
     const a = mess.a
-    if (!a.id || a.id.length !== ut.idLen) { sendErr(203, 'Protocol error', t, rinfo); return }
+    if (!a.id) { sendErr(203, 'Missing id'); return }
+    if (a.id.length !== ut.idLen) { sendErr(203, 'Invalid id length'); return }
     let target = a.target || a.info_hash
-    if (target && target.length !== ut.idLen) { sendErr(203, 'Protocol error', t, rinfo); return }
-    if (!target && q !== 'put') { sendErr(203, 'Protocol error', t, rinfo); return }
+    if (!target && q !== 'ping' && q !== 'put') { sendErr(203, 'Missing target or info_hash'); return }
+    if (target && target.length !== ut.idLen) { sendErr(203, 'Invalid target or info_hash length'); return }
     const contact = ut.addContact(my.table, a.id, ut.makeLoc(rinfo.address, rinfo.port))
     const node = contactsToNodes([contact])
     const token = ut.sha1(Buffer.concat([node, iq.secret]))
@@ -388,44 +389,49 @@ const iq = {
     const validToken = a.token && (a.token.equals(token) || a.token.equals(oldToken))
     if (q === 'ping') ;
     else if (q === 'find_node') {
-      resp.r.nodes = getNodes(a.target)
+      resp.r.nodes = getNodes(target)
     } else if (q === 'get_peers') {
       resp.r.token = token
       const peers = ps.getPeers(target)
       peers ? (resp.r.values = peers) : (resp.r.nodes = getNodes(target))
     } else if (q === 'announce_peer') {
-      if (!validToken) { sendErr(203, 'Protocol error', t, rinfo); return }
+      if (!validToken) { sendErr(203, 'Invalid token'); return }
       if (!ut.byteMatch(target, my.id, iq.match)) return
       let peer
       if (!a.implied_port || a.implied_port !== 1) {
-        if (!a.port) { sendErr(203, 'Missing port', t, rinfo); return }
+        if (!a.port) { sendErr(203, 'Missing port'); return }
         peer = ut.makeLoc(rinfo.address, a.port)
       } else peer = contact.loc
       ps.putPeer(target, peer)
     } else if (q === 'get') {
       resp.r.token = token
-      const datum = ds.getData(a.target)
+      const datum = ds.getData(target)
       datum && (a.seq ? datum.seq > a.seq : true) && Object.assign(resp.r, datum)
-      resp.r.nodes = getNodes(a.target)
+      resp.r.nodes = getNodes(target)
     } else if (q === 'put') {
-      if (!validToken) { sendErr(203, 'Invalid token', t, rinfo); return }
-      if (!a.v) { sendErr(203, 'Missing v', t, rinfo); return }
-      if (ben.encode(a.v).length > ut.maxV) { sendErr(205, 'Message (v) too big', t, rinfo); return }
+      if (!validToken) { sendErr(203, 'Invalid token'); return }
+      if (!a.v) { sendErr(203, 'Missing v'); return }
+      if (ben.encode(a.v).length > ut.maxV) { sendErr(205, 'Message (v) too big'); return }
       let datum
-      if (a.k && a.seq && a.sig) { // mutable
-        if (a.k.length !== ut.keyLen || a.sig.length !== ut.sigLen) { sendErr(203, 'Protocol error', t, rinfo); return }
-        if (!eds.verify(a.sig, ut.packSeqSalt(a.seq, a.v, a.salt), a.k)) { sendErr(206, 'Invalid signature', t, rinfo); return }
+      const hasSeq = a.hasOwnProperty('seq')
+      const all = a.k && hasSeq && a.sig
+      if ((a.k || hasSeq || a.sig) && !all) { sendErr(203, 'Missing k, seq or sig'); return }
+      if (all) { // mutable
+        if (a.k.length !== ut.keyLen) { sendErr(203, 'Invalid k length'); return }
+        if (!(parseInt(a.seq) >= 0)) { sendErr(203, 'Invalid sequence number'); return }
+        if (a.sig.length !== ut.sigLen) { sendErr(203, 'Invalid sig length'); return }
+        if (!eds.verify(a.sig, ut.packSeqSalt(a.seq, a.v, a.salt), a.k)) { sendErr(206, 'Invalid signature'); return }
         target = a.k
         if (a.salt) {
-          if (a.salt.length > ut.saltLen) { sendErr(207, 'Salt too big', t, rinfo); return }
+          if (a.salt.length > ut.saltLen) { sendErr(207, 'Salt too big'); return }
           target = Buffer.concat([target, a.salt])
         }
         target = ut.sha1(target)
         const oldDatum = ds.getData(target)
         if (oldDatum) {
-          if (a.hasOwnProperty('cas') && a.cas !== oldDatum.seq) { sendErr(301, 'CAS mismatch', t, rinfo); return }
-          if (oldDatum.seq > a.seq) { sendErr(302, 'Sequence number too small', t, rinfo); return }
-          if (oldDatum.seq === a.seq && !ben.encode(oldDatum.v).equals(ben.encode(a.v))) { sendErr(302, 'Sequence number too small', t, rinfo); return }
+          if (a.hasOwnProperty('cas') && a.cas !== oldDatum.seq) { sendErr(301, 'CAS mismatch'); return }
+          if (oldDatum.seq > a.seq) { sendErr(302, 'Sequence number too small'); return }
+          if (oldDatum.seq === a.seq && !ben.encode(oldDatum.v).equals(ben.encode(a.v))) { sendErr(302, 'Sequence number too small'); return }
         }
         datum = { v: a.v, k: a.k, seq: a.seq, sig: a.sig }
       } else { // immutable
@@ -434,7 +440,11 @@ const iq = {
       }
       if (!ut.byteMatch(target, my.id, iq.match)) return
       ds.putData(target, datum)
-    } else return
+    } else if (q === 'vote') {
+    } else {
+      sendErr(204, 'Method unkown')
+      return
+    }
     sr.send(ben.encode(resp), contact.loc)
   }
 }
@@ -505,4 +515,5 @@ const ds = {
 
 module.exports = go.init
 
-// review err codes
+// check socket activity when not connected to internet
+// monitor outgoing errors

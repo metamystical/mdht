@@ -305,7 +305,7 @@ const oq = {
         ++pending
         oq.query(pre, preArgs, contact.loc, (res) => { // get values and token
           if (res) {
-            const socket = { address: contact.loc.address, port: contact.loc.port }
+            const socket = ut.unmakeLoc(contact.loc)
             if (res.values) { // get_peers
               let err = null; res.values.forEach((peer) => { if (peer.length !== ut.locLen) err = true })
               if (err) { finish(); return }

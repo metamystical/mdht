@@ -49,7 +49,7 @@ ret | object returned by putData with actually used outgoing .target and .v and 
 seq | sequence number (int) of mutable data
 sig | ed25519 signature of salt, v and seq (64-byte buffer)
 k | public key used to make a mutable target and to sign and verify mutable data (32-byte buffer)
-onV | if not null or undefined, called whenever peer locations or BEP44 data are received from a remote node, with a single argument: an object including .target and .values for getPeers and announce Peers, or .ih and .v for getData and putData
+onV | if not null or undefined, called whenever peer locations or BEP44 data are received from a remote node, with a single argument: an object with .target and .values for getPeers and announce Peers, or .ih and .v for getData and putData
 
 Note that getData can be used with values of target and mutableSalt provided by whomever stored the data. If target is unknown, it can be computed with makeMutableTarget (if k and mutableSalt are known) or makeImmutableTarget (if v is known).
 

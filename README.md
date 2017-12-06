@@ -100,4 +100,3 @@ client.dht.nodeId // actual nodeId used
 const ret = client.dht.put(v, mutableSalt, resetTarget, function (numVisited, numStored) { })
 client.dht.get(target, mutableSalt, function (numVisited, { v: (object), seq: (int), numFound: (int) }) { } )
 ```
-

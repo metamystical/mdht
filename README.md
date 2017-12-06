@@ -7,10 +7,10 @@ and including BEP44 data storage. IPv4 only.
 
 term | description
 -----|------------
-location (loc) | 6-byte buffer, network location (4-byte IPv4 address + 2-byte port)
-peer | 6-byte buffer, location of a mainlne bittorrent client (TCP) that includes a DHT node, not always having the same port as its node
-id | 20-byte buffer, a DHT node id or a torrent infohash
-node | 26-byte buffer (20-byte id + 6-byte location), identfies and locates a DHT node (UDP)
+location | network location (6-byte buffer == 4-byte IPv4 address + 2-byte port)
+peer | location of a mainlne bittorrent client that includes a DHT node
+id | DHT node id (20-byte buffer)
+node | identfies and locates a DHT node (26-byte buffer == 20-byte id + 6-byte location), 
 contact | object version of a node { id: 20-byte buffer, loc: 6-byte location bufer }
 
 ### Usage (API):
@@ -22,10 +22,10 @@ const dht = dhtInit(options, update) // options is an object, update is a callba
 
 option | description
 -------|------------
-options.port | UDP server port (integer, default 6881)
+options.port | my UDP server port (integer, default 6881)
 options.id | my node id (20-byte buffer, default random)
 options.seed | seed for generating ed25519 key pair for signing mutable data (32-byte buffer, default random)
-options.bootLocs | locations to contact at startup (buffer of concatenated 6-byte network locations, default empty)
+options.bootLocs | remote node locations to contact at startup (buffer of concatenated 6-byte network locations, default empty)
 
 #### dhtInit returns an object with the following methods:
 ```

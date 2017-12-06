@@ -134,7 +134,7 @@ const sr = {
 
   init: (done) => {
     sr.udp.bind(sr.port)
-    sr.udp.once('listening', () => { go.doUpdate('listening', sr.udp.address()); done() })
+    sr.udp.once('listening', () => { const { address, port } = sr.udp.address(); go.doUpdate('listening', address + ':' + port); done() })
     sr.udp.once('error', (err) => { err && go.doUpdate('udp', sr.port) })
     sr.udp.on('message', (mess, rinfo) => { process.nextTick(sr.recv, mess, rinfo) })
   },

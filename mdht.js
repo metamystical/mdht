@@ -134,7 +134,7 @@ const sr = {
 
   init: (done) => {
     sr.udp.bind(sr.port)
-    sr.udp.once('listening', () => { const { address, port } = sr.udp.address(); go.doUpdate('listening', address + ':' + port); done() })
+    sr.udp.once('listening', () => { go.doUpdate('listening', sr.udp.address()); done() })
     sr.udp.once('error', (err) => { err && go.doUpdate('udp', sr.port) })
     sr.udp.on('message', (mess, rinfo) => { process.nextTick(sr.recv, mess, rinfo) })
   },
@@ -178,7 +178,7 @@ const my = {
 
   update: () => {
     go.doUpdate('locs', Buffer.concat(my.table.allContacts().map((contact) => { return contact.loc })))
-    go.doUpdate('closest', my.table.closestContacts().map((contact) => { return contact.id.toString('hex') }))
+    go.doUpdate('closest', my.table.closestContacts().map((contact) => { return contact.id }))
   }
 }
 
@@ -239,7 +239,7 @@ const oq = {
       if (y === 'r') done(mess.r)
       else if (y === 'e') {
         done(null)
-        go.doUpdate('error', { e: mess.e, loc: rinfo.address + ':' + rinfo.port })
+        go.doUpdate('error', { e: mess.e, rinfo: rinfo })
       }
     }
   },
@@ -374,7 +374,7 @@ const iq = {
     if (!mess.q) { sendErr(203, 'Missing q'); return }
     if (!mess.a) { sendErr(203, 'Missing a'); return }
     const q = mess.q.toString()
-    go.doUpdate('incoming', { q: q, loc: rinfo.address + ':' + rinfo.port })
+    go.doUpdate('incoming', { q: q, rinfo: rinfo })
     const resp = { t: mess.t, y: 'r', r: { id: my.id } }
     const a = mess.a
     if (!a.id) { sendErr(203, 'Missing id'); return }

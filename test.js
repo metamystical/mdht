@@ -102,8 +102,8 @@ function update (key, val) {
     case 'publicKey': report('public key => ' + val.toString('hex')); pKey = val; break
     case 'listening': report('server listening on port => ' + val.port); break
     case 'ready': report('bootstrap complete, nodes visited => ' + val); next(); break
-    case 'incoming': report('incoming => ' + val.q + ' (' + addrPort(val.rinfo) + ')'); break
-    case 'error': report('error => ' + val.e[0] + ': ' + val.e[1] + ' (' + addrPort(val.rinfo) + ')'); break
+    case 'incoming': report('incoming => ' + val.q + ' (' + addrPort(val.socket) + ')'); break
+    case 'error': report('error => ' + val.e[0] + ': ' + val.e[1] + ' (' + addrPort(val.socket) + ')'); break
     case 'locs': report('number of contacts => ' + (val.length / locLen) + ', saving to => .boot'); saveBuff(val, '.boot'); break
     case 'closest': report('closest contacts =>'); val.forEach((id) => { report(id.toString('hex')) }); break
     case 'peers': report('stored peers => ' + val.numPeers + ', infohashes => ' + val.numInfohashes); break
@@ -112,7 +112,6 @@ function update (key, val) {
     case 'dropNode': report('dropping node => ' + val); break
     case 'dropPeer': report('dropping peer => ' + val); break
     case 'dropData': report('dropping data @ target => ' + val); break
-    case 'udpFail': report('fatal error opening port => ' + val); process.exit(0)
   }
 }
 

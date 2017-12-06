@@ -60,12 +60,12 @@ Key | Signal | Value
 'udpFail' | initialization failed | local port (int) that failed to open; calling program should restart using a different port
 'id' | initialized | *id* actually used to create routing table
 'publicKey' | initialized | public key (k) actually used for ed25519 signatures
-'listening' | local udp socket is listening | { address: (string), port: (int), etc }
+'listening' | local udp socket is listening | local node socket 'address:port'
 'ready' | bootstrap is complete | number of nodes visited during bootstrap
-'incoming' | incoming query object | { q: query type (string), rinfo: remote node socket { address: (string), port: (int), etc } }
-'error' | incoming error object | { e: [error code (int), error message (string)], rinfo: remote node socket { address: (string), port: (int), etc } }
+'incoming' | incoming query object | { q: query type (string), loc: remote node socket 'address:port' }
+'error' | incoming error object | { e: [error code (int), error message (string)], loc: remote node socket 'address:port' }
 'locs' | periodic report | buffer packed with node *locations* from the routing table; may used for disk storage
-'closest' | periodic report | array of node *ids* from the routing table, the closest nodes to the table *id*
+'closest' | periodic report | array of node ids (hex strings) from the routing table, the closest nodes to the table *id*
 'peers' | periodic report | { numPeers: number of stored peer locations, infohashes: number of stored infohashes }
 'data' | periodic report | number of BEP44 stored data items
 'spam' | detected spammer node, temporarily blocked| 'address:port'

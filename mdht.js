@@ -178,7 +178,7 @@ const my = {
 
   update: () => {
     go.doUpdate('locs', Buffer.concat(my.table.allContacts().map((contact) => { return contact.loc })))
-    go.doUpdate('closest', my.table.closestContacts().map((contact) => { return contact.id }))
+    go.doUpdate('closest', my.table.closestContacts().map((contact) => { return contact.id.toString('hex') }))
   }
 }
 
@@ -239,7 +239,7 @@ const oq = {
       if (y === 'r') done(mess.r)
       else if (y === 'e') {
         done(null)
-        go.doUpdate('error', { e: mess.e, rinfo: rinfo })
+        go.doUpdate('error', { e: mess.e, loc: rinfo.address + ':' + rinfo.port })
       }
     }
   },
@@ -374,7 +374,7 @@ const iq = {
     if (!mess.q) { sendErr(203, 'Missing q'); return }
     if (!mess.a) { sendErr(203, 'Missing a'); return }
     const q = mess.q.toString()
-    go.doUpdate('incoming', { q: q, rinfo: rinfo })
+    go.doUpdate('incoming', { q: q, loc: rinfo.address + ':' + rinfo.port })
     const resp = { t: mess.t, y: 'r', r: { id: my.id } }
     const a = mess.a
     if (!a.id) { sendErr(203, 'Missing id'); return }

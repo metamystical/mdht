@@ -7,8 +7,8 @@ Includes BEP44 data storage. IPv4 only. References: [BEP5](http://www.bittorrent
 
 Term | Description
 -----|------------
-*location* | network *location* (6-byte buffer == 4-byte IPv4 address + 2-byte port); example: Buffer.from('ff0000011ae1', 'hex') is '127.0.0.1:6881'
-*id* | DHT node *id*, infohash of a torrent or target of BEP44 data (20-byte buffer)
+*location* | network *location* (6-byte buffer: 4-byte IPv4 address + 2-byte port); example: Buffer.from('ff0000011ae1', 'hex') is '127.0.0.1:6881'
+*id* | DHT node *id*, infohash of a torrent, or target of BEP44 data (20-byte buffer)
 node | a member of the Mainline DHT network which uses UDP
 peer | a bittorrent client associated with a DHT node which uses TCP, usually on the same port
 
@@ -40,16 +40,16 @@ dht.makeImmutableTarget(v)
 Argument | Description
 ---------|------------
 ih | infohash, *id* of a torrent
-values | array of peer locations which have the torrent with infohash ih
+values | array of peer *locations* which have the torrent with infohash ih
 target | *id* of BEP44 data
 v | BEP44 data stored in or retrieved from the DHT (object, buffer, string or number)
-mutableSalt | if immutable BEP44 data then *false* or *''*; if mutable data then *true* if no salt or *salt* (non-empty string or buffer -- string will be converted to buffer, buffer will be truncated to 64 bytes)
+mutableSalt | if immutable BEP44 data then *false* or *''*; if mutable data then *true* if no salt, or *salt* (non-empty string or buffer -- string will be converted to buffer, buffer will be truncated to 64 bytes)
 resetTarget | if not null, a target used to reset the timeout of previously stored mutable data (v is ignored in this case)
-ret | object with actually used outgoing .target and .v and (for mutable data) .salt, .seq, .k and .sig
+ret | object returned by putData with actually used outgoing .target and .v and (for mutable data) .salt, .seq, .k and .sig
 seq | sequence number (int) of mutable data
 sig | ed25519 signature of salt, v and seq (64-byte buffer)
 k | public key used to make a mutable target and to sign and verify mutable data (32-byte buffer)
-onV | if not null or undefined, called whenever peer locations or BEP44 data are received from a remote node, with arguments (target/ih, response object including .values/.v for getPeers/getData)
+onV | if not null or undefined, called whenever peer locations or BEP44 data are received from a remote node, with a single argument: an object including .target and .values for getPeers and announce Peers, or .ih and .v for getData and putData
 
 Note that getData can be used with values of target and mutableSalt provided by whomever stored the data. If target is unknown, it can be computed with makeMutableTarget (if k and mutableSalt are known) or makeImmutableTarget (if v is known).
 
@@ -58,8 +58,8 @@ Note that getData can be used with values of target and mutableSalt provided by 
 Key | Signal | Value
 ----|--------|------
 'udpFail' | initialization failed | local port (int) that failed to open; calling program should restart using a different port
-'id' | initialized | *id* (buffer) actually used to create routing table
-'publicKey' | initialized | public key (buffer) actually used for ed25519 signatures
+'id' | initialized | *id* actually used to create routing table
+'publicKey' | initialized | public key (k) actually used for ed25519 signatures
 'listening' | local udp socket is listening | { address: (string), port: (int), etc }
 'ready' | bootstrap is complete | number of nodes visited during bootstrap
 'incoming' | incoming query object | { q: query type (string), rinfo: remote node socket { address: (string), port: (int), etc } }
@@ -69,9 +69,9 @@ Key | Signal | Value
 'peers' | periodic report | { numPeers: number of stored peer locations, infohashes: number of stored infohashes }
 'data' | periodic report | number of BEP44 stored data items
 'spam' | detected spammer node, temporarily blocked| 'address:port'
-'dropNode' | node dropped from routing table | { address: (string), port: (int) }
-'dropPeer' | peer location dropped from storage | { address: (string), port: (int) }
-'dropData' | data dropped from BEP44 storage | target (buffer)
+'dropNode' | node dropped from routing table | 'address:port'
+'dropPeer' | peer location dropped from storage | 'address:port'
+'dropData' | data dropped from BEP44 storage | 'target' (hex string)
 
 ### test.js example program This program provides a command line interface for mdht.js as well as
 an interface with disk storage. The *id*, seed and boot *locations* are saved in separate files

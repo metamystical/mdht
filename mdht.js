@@ -310,7 +310,7 @@ const oq = {
               if (err) { finish(); return }
               peers || (peers = [])
               res.values.forEach((peer) => { if (!unique.includes(peer)) { unique = Buffer.concat([unique, peer]); peers.push(peer) } })
-              if (onV) { res.ih = target; onV(res) }
+              if (onV) { onV({ ih: target, values: res.values }) }
             } else if (res.v) { // get
               if (ben.encode(res.v).length > ut.maxV) { finish(); return }
               if (mutable) { // mutable
@@ -329,7 +329,7 @@ const oq = {
                 if (!value) value = res.v
                 ++numFound
               }
-              if (onV) { res.target = target; onV(res) }
+              if (onV) { onV({ target: target, v: res.v }) }
             }
             if (res.token && post) { // use token to store peers or data
               ++pending

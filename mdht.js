@@ -2,11 +2,11 @@
 //
 // Terminology:
 //
-// location (loc) -- 6-byte buffer, network location (4-byte IPv4 address + 2-byte port)
-// peer -- 6-byte buffer, location of a mainlne bittorrent client (TCP) that includes a DHT node, not always having the same port as its node
-// id -- 20-byte buffer, a DHT node id or a torrent infohash
-// node -- 26-byte buffer (20-byte id + 6-byte location), identfies and locates a DHT node
-// contact -- object version of a node { id: 20-byte buffer, loc: 6-byte location bufer }
+// location (loc) -- network *location* (6-byte buffer == 4-byte IPv4 address + 2-byte port)
+// id -- DHT node id, infohash of a torrent or target of BEP44 data (20-byte buffer)
+// node -- a member of the Mainline DHT network which uses UDP; each node has an id and location
+// contact -- a node id/location as an object { id: ..., loc: ... }
+// peer -- a bittorrent client associated with a DHT node which uses TCP, usually on the same port
 //
 // See README.md for API description.
 
@@ -171,7 +171,7 @@ const my = {
   refreshTable: () => {
     my.table.refreshTable(
       (loc) => { oq.query('ping', {}, loc, (r) => {}) },
-      (loc) => { go.doUpdate('dropContact', ut.unmakeLoc(loc)) }
+      (loc) => { const { address, port } = ut.unmakeLoc(loc); go.doUpdate('dropNode', address + ':' + port) }
     )
     my.update()
   },
@@ -230,7 +230,7 @@ const oq = {
 
   resp: (y, mess, rinfo) => {
     if (!mess.t) return
-    if (!mess.t.length === 2 || y === 'r' && !(mess.r && mess.r.id) || y === 'e' && !mess.e ) return
+    if (!mess.t.length === 2 || (y === 'r' && !(mess.r && mess.r.id)) || (y === 'e' && !mess.e)) return
     const t = ut.buff2ToInt(mess.t).toString()
     if (Object.keys(oq.pendingQueries).includes(t)) {
       if (y === 'r') ut.addContact(my.table, mess.r.id, ut.makeLoc(rinfo.address, rinfo.port))
@@ -275,6 +275,7 @@ const oq = {
     let mutable = preArgs.mutableSalt; let salt = false
     delete preArgs.mutableSalt
     if (mutable && mutable !== true) { salt = Buffer.from(mutable).slice(0, ut.saltLen); mutable = true }
+    salt && !salt.length && (salt = false)
     if (post === 'put') {
       if (mutable) {
         salt && (postArgs.salt = salt)
@@ -304,7 +305,13 @@ const oq = {
         ++pending
         oq.query(pre, preArgs, contact.loc, (res) => { // get values and token
           if (res) {
-            if (res.v) { // get
+            if (res.values) { // get_peers
+              let err = null; res.values.forEach((peer) => { if (peer.length !== ut.locLen) err = true })
+              if (err) { finish(); return }
+              peers || (peers = [])
+              res.values.forEach((peer) => { if (!unique.includes(peer)) { unique = Buffer.concat([unique, peer]); peers.push(peer) } })
+              if (onV) { res.ih = target; onV(res) }
+            } else if (res.v) { // get
               if (ben.encode(res.v).length > ut.maxV) { finish(); return }
               if (mutable) { // mutable
                 if (!(res.seq && res.k && res.sig && res.k.length === ut.keyLen && res.sig.length === ut.sigLen)) { finish(); return }
@@ -322,14 +329,7 @@ const oq = {
                 if (!value) value = res.v
                 ++numFound
               }
-              if (onV) onV(res, target)
-            }
-            if (res.values) {
-              let err = null; res.values.forEach((peer) => { if (peer.length !== ut.locLen) err = true })
-              if (err) { finish(); return }
-              peers || (peers = [])
-              res.values.forEach((peer) => { if (!unique.includes(peer)) { unique = Buffer.concat([unique, peer]); peers.push(peer) } })
-              if (onV) onV(res, target)
+              if (onV) { res.target = target; onV(res) }
             }
             if (res.token && post) { // use token to store peers or data
               ++pending
@@ -462,7 +462,8 @@ const ps = {
       for (const [peerHex, time] of Object.entries(ps.peers[ihHex])) {
         if (now - time >= ps.timeout) {
           delete ps.peers[ihHex][peerHex]
-          go.doUpdate('dropPeer', ut.unmakeLoc(ut.hexToBuff(peerHex)))
+          const { address, port } = ut.unmakeLoc(ut.hexToBuff(peerHex))
+          go.doUpdate('dropPeer', address + ':' + port)
         } else {
           ++numPeers
         }

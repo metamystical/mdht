@@ -49,7 +49,8 @@ ret | object returned by putData with actually used outgoing .target and .v and 
 seq | sequence number (int) of mutable data
 sig | ed25519 signature of salt, v and seq (64-byte buffer)
 k | public key used to make a mutable target and to sign and verify mutable data (32-byte buffer)
-onV | if not null or undefined, called whenever peer locations or BEP44 data are received from a remote node, with a single argument: an object with .target and .values for getPeers and announce Peers, or .ih and .v for getData and putData
+onV | if not null or undefined, called whenever peer locations or BEP44 data are received from a remote node, with a single argument: an object with .target and .values for getPeers and announce Peers, or .ih and .v for getData and putData, plus .socket in both cases
+socket | node socket, object version of node 'location' { address: (string), port: (int) }
 
 Note that getData can be used with values of target and mutableSalt provided by whomever stored the data. If target is unknown, it can be computed with makeMutableTarget (if k and mutableSalt are known) or makeImmutableTarget (if v is known).
 
@@ -60,10 +61,10 @@ Key | Signal | Value
 'udpFail' | initialization failed | local port (int) that failed to open; calling program should restart using a different port
 'id' | initialized | *id* actually used to create routing table
 'publicKey' | initialized | public key (k) actually used for ed25519 signatures
-'listening' | local udp socket is listening | { address: (string), port: (int), etc }
+'listening' | local udp socket is listening | local socket
 'ready' | bootstrap is complete | number of nodes visited during bootstrap
-'incoming' | incoming query object | { q: query type (string), rinfo: remote node socket { address: (string), port: (int), etc } }
-'error' | incoming error object | { e: [error code (int), error message (string)], rinfo: remote node socket { address: (string), port: (int), etc } }
+'incoming' | incoming query object | { q: query type (string), socket: remote socket }
+'error' | incoming error object | { e: [error code (int), error message (string)], socket: remote socket }
 'locs' | periodic report | buffer packed with node *locations* from the routing table; may used for disk storage
 'closest' | periodic report | array of node *ids* from the routing table, the closest nodes to the table *id*
 'peers' | periodic report | { numPeers: number of stored peer locations, infohashes: number of stored infohashes }

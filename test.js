@@ -96,21 +96,21 @@ function go (loc) { opts.bootLocs = loc; dht = dhtInit(opts, update) }
 
 function update (key, val) {
   switch (key) {
+    case 'udpFail': report('fatal error opening port => ' + val); process.exit(0)
     case 'id': report('id => ' + val.toString('hex')); break
     case 'publicKey': report('public key => ' + val.toString('hex')); pKey = val; break
     case 'listening': report('server listening on socket => ' + val); break
     case 'ready': report('bootstrap complete, nodes visited => ' + val); next(); break
+    case 'incoming': report('incoming => ' + val.q + ' (' + val.loc + ')'); break
+    case 'error': report('error => ' + val.e[0] + ': ' + val.e[1] + ' (' + val.loc + ')'); break
     case 'locs': report('number of contacts => ' + (val.length / locLen) + ', saving to => .boot'); saveBuff(val, '.boot'); break
     case 'closest': report('closest contacts =>'); val.forEach((id) => { report(id) }); break
-    case 'incoming': report('incoming => ' + val.q + ' (' + val.loc + ')'); break
     case 'peers': report('stored peers => ' + val.numPeers + ', infohashes => ' + val.numInfohashes); break
     case 'data': report('stored data => ' + val); break
     case 'spam': report('spammer => ' + val); break
     case 'dropNode': report('dropping node => ' + val); break
     case 'dropPeer': report('dropping peer => ' + val); break
     case 'dropData': report('dropping data @ target => ' + val); break
-    case 'error': report('error => ' + val.e[0] + ': ' + val.e[1] + ' (' + val.loc + ')'); break
-    case 'udpFail': report('fatal error opening port => ' + val); process.exit(0)
   }
 }
 

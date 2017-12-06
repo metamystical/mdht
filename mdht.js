@@ -134,7 +134,7 @@ const sr = {
 
   init: (done) => {
     sr.udp.bind(sr.port)
-    sr.udp.once('listening', () => { go.doUpdate('listening', sr.udp.address()); done() })
+    sr.udp.once('listening', () => { go.doUpdate('listening', { address: sr.udp.address().address, port: sr.udp.address().port }); done() })
     sr.udp.once('error', (err) => { err && go.doUpdate('udp', sr.port) })
     sr.udp.on('message', (mess, rinfo) => { process.nextTick(sr.recv, mess, rinfo) })
   },
@@ -239,7 +239,7 @@ const oq = {
       if (y === 'r') done(mess.r)
       else if (y === 'e') {
         done(null)
-        go.doUpdate('error', { e: mess.e, rinfo: rinfo })
+        go.doUpdate('error', { e: mess.e, socket: { address: rinfo.address, port: rinfo.port } })
       }
     }
   },
@@ -305,12 +305,13 @@ const oq = {
         ++pending
         oq.query(pre, preArgs, contact.loc, (res) => { // get values and token
           if (res) {
+            const socket = { address: contact.loc.address, port: contact.loc.port }
             if (res.values) { // get_peers
               let err = null; res.values.forEach((peer) => { if (peer.length !== ut.locLen) err = true })
               if (err) { finish(); return }
               peers || (peers = [])
               res.values.forEach((peer) => { if (!unique.includes(peer)) { unique = Buffer.concat([unique, peer]); peers.push(peer) } })
-              if (onV) { onV({ ih: target, values: res.values }) }
+              if (onV) { onV({ ih: target, values: res.values, socket: socket }) }
             } else if (res.v) { // get
               if (ben.encode(res.v).length > ut.maxV) { finish(); return }
               if (mutable) { // mutable
@@ -329,7 +330,7 @@ const oq = {
                 if (!value) value = res.v
                 ++numFound
               }
-              if (onV) { onV({ target: target, v: res.v }) }
+              if (onV) { onV({ target: target, v: res.v, socket: socket }) }
             }
             if (res.token && post) { // use token to store peers or data
               ++pending
@@ -374,7 +375,7 @@ const iq = {
     if (!mess.q) { sendErr(203, 'Missing q'); return }
     if (!mess.a) { sendErr(203, 'Missing a'); return }
     const q = mess.q.toString()
-    go.doUpdate('incoming', { q: q, rinfo: rinfo })
+    go.doUpdate('incoming', { q: q, socket: { address: rinfo.address, port: rinfo.port } })
     const resp = { t: mess.t, y: 'r', r: { id: my.id } }
     const a = mess.a
     if (!a.id) { sendErr(203, 'Missing id'); return }

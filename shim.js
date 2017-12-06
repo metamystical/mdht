@@ -35,10 +35,13 @@ function DHT (opts) {
   this.listening = false
   instanceDHT = this
 }
-DHT.prototype.listen = (port) => { options.port = port; dht = dhtInit(options, update) }
+DHT.prototype.listen = (port) => {
+  options.port = port
+  dht = dhtInit(options, update)
+  DHT.prototype.put = dht.putData
+  DHT.prototype.get = dht.getData
+}
 DHT.prototype.address = () => { return udpAddress }
 DHT.prototype.announce = (infoHash, port, done) => { dht.announcePeer(Buffer.from(infoHash, 'hex'), done, onPeers) }
 DHT.prototype.destroy = (done) => { process.exit(0) }
 DHT.prototype.addNode = (obj) => { }
-DHT.prototype.put = dht.putData
-DHT.prototype.get = dht.getData

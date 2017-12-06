@@ -107,11 +107,11 @@ function update (key, val) {
     case 'peers': report('stored peers => ' + val.numPeers + ', infohashes => ' + val.numInfohashes); break
     case 'data': report('stored data => ' + val); break
     case 'spam': report('spammer => ' + val); break
-    case 'dropContact': report('dropping contact => ' + addrPort(val)); break
+    case 'dropNode': report('dropping node => ' + addrPort(val)); break
     case 'dropPeer': report('dropping peer => ' + addrPort(val)); break
     case 'dropData': report('dropping data @ target => ' + val); break
     case 'error': report('error => ' + val.e[0] + ': ' + val.e[1] + ' (' + addrPort(val.rinfo) + ')'); break
-    case 'udp': report('fatal error opening port => ' + val); process.exit(0)
+    case 'udpFail': report('fatal error opening port => ' + val); process.exit(0)
   }
 }
 

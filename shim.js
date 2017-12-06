@@ -4,7 +4,7 @@ const EventEmitter = require('events').EventEmitter
 require('inherits')(DHT, EventEmitter)
 const dhtInit = require('./mdht')
 
-let dht = {}, instanceDHT, udpAddress
+let dht = {}; let instanceDHT; let udpAddress
 let options = {}
 
 const buff2ToInt = (buff) => { return (buff[0] << 8) + buff[1] }
@@ -19,12 +19,10 @@ const update = (key, val) => {
     case 'listening': udpAddress = val; instanceDHT.listening = true; instanceDHT.emit('listening'); break
     case 'ready': instanceDHT.emit('ready'); break
     case 'locs': instanceDHT.emit('nodes', val); break
-    case 'udp': console.log('fatal error opening port => ' + val); process.exit(0)
+    case 'udpFail': console.log('fatal error opening port => ' + val); process.exit(0)
   }
 }
-const onPeers = (res, infohash) => {
-  res && res.values && res.values.forEach((peer) => { instanceDHT.emit('peer', unmakeLoc(peer), infohash.toString('hex')) })
-}
+const onPeers = (res) => { res.values.forEach((peer) => { instanceDHT.emit('peer', unmakeLoc(peer), res.ih.toString('hex')) }) }
 
 function DHT (opts) {
   opts || (opts = {})

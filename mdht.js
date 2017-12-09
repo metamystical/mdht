@@ -296,8 +296,9 @@ const oq = {
 
       const finish = () => {
         if (--pending > 0) return
+        let ret
         if (post) {
-          let ret = { numVisited: numVisited, numStored: numStored }
+          ret = { numVisited: numVisited, numStored: numStored }
           if (post === 'put') {
             ret = Object.assign(ret, { target: target, v: postArgs.v })
             if (mutable) {
@@ -306,7 +307,7 @@ const oq = {
             }
           }
         } else {
-          let ret = { numVisited: numVisited, numFound: numFound }
+          ret = { numVisited: numVisited, numFound: numFound }
           if (peers) ret = Object.assign(ret, { peers: peers }, { numFound: peers.length })
           else if (value !== null) {
             ret = Object.assign(ret, { v: value })

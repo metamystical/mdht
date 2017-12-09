@@ -28,10 +28,10 @@ options.bootLocs | remote node *locations* to contact at startup (buffer of conc
 
 #### dhtInit returns an object with the following methods:
 ```
-dht.announcePeer(ih, (numVisited, numAnnounced) => {}, onV) // assumes local peer uses options.port
-dht.getPeers(ih, (numVisited, values) => {}, onV)
-dht.putData(v, mutableSalt, resetTarget, (numVisited, numStored) => {}, onV) // returns 'ret' object
-dht.getData(target, mutableSalt, (numVisited, { v: ..., seq: ..., numFound: ... } or null if not found) => {}, onV)
+dht.announcePeer(ih, ({ numVisited: ..., numAnnounced: ... }) => {}, onV) // assumes local peer uses options.port
+dht.getPeers(ih, ({ numVisited: ..., values: ... }) => {}, onV)
+dht.putData(v, mutableSalt, resetTarget, ( { numVisited: ..., numStored: ..., target: ..., v: ..., salt: ..., seq: ..., k: ..., sig: ... }) => {}, onV)
+dht.getData(target, mutableSalt, ({ numVisited: ..., numFound: ..., v: ..., seq: ... }) => {}, onV)
 dht.makeMutableTarget(k, mutableSalt)
 dht.makeImmutableTarget(v)
 ```
@@ -45,12 +45,13 @@ target | *id* of BEP44 data
 v | BEP44 data stored in or retrieved from the DHT (object, buffer, string or number)
 mutableSalt | if immutable BEP44 data then *false* or *''*; if mutable data then *true* if no salt, or *salt* (non-empty string or buffer -- string will be converted to buffer, buffer will be truncated to 64 bytes)
 resetTarget | if not null, a target used to reset the timeout of previously stored mutable data (v is ignored in this case)
-ret | object returned by putData with actually used outgoing .target and .v and (for mutable data) .salt, .seq, .k and .sig
 seq | sequence number (int) of mutable data
 sig | ed25519 signature of salt, v and seq (64-byte buffer)
-k | public key used to make a mutable target and to sign and verify mutable data (32-byte buffer)
+k | public key used to make a mutable target and to sign and verify mutable data (32-byte buffer); if null, local public key is used
 onV | if not null or undefined, called whenever peer locations or BEP44 data are received from a remote node, with a single argument: an object with .target and .values for getPeers and announce Peers, or .ih and .v for getData and putData, plus .socket in both cases
 socket | node socket, object version of node 'location' { address: (string), port: (int) }
+
+Note that the callback argument of each method, an object, will not include items that do not apply or were not found
 
 Note that getData can be used with values of target and mutableSalt provided by whomever stored the data. If target is unknown, it can be computed with makeMutableTarget (if k and mutableSalt are known) or makeImmutableTarget (if v is known).
 

@@ -68,7 +68,7 @@ Key | Signal | Value
 'error' | incoming error object | { e: [error code (int), error message (string)], socket: remote socket }
 'locs' | periodic report | buffer packed with node *locations* from the routing table; may used for disk storage
 'closest' | periodic report | array of node *ids* from the routing table, the closest nodes to the table *id*
-'peers' | periodic report | { numPeers: number of stored peer locations, infohashes: number of stored infohashes }
+'peers' | periodic report | { numPeers: number of stored peer locations, numInfohashes: number of stored infohashes }
 'data' | periodic report | number of BEP44 stored data items
 'spam' | detected spammer node, temporarily blocked| 'address:port'
 'dropNode' | node dropped from routing table | 'address:port'

@@ -296,10 +296,24 @@ const oq = {
 
       const finish = () => {
         if (--pending > 0) return
-        if (post) done(numVisited, numStored)
-        else if (peers) done(numVisited, peers)
-        else if (value !== null) done(numVisited, { v: value, seq: seq, numFound: numFound })
-        else done(numVisited, null)
+        if (post) {
+          let ret = { numVisited: numVisited, numStored: numStored }
+          if (post === 'put') {
+            ret = Object.assign(ret, { target: target, v: postArgs.v })
+            if (mutable) {
+              ret = Object.assign(ret, { seq: postArgs.seq, k: postArgs.k, sig: postArgs.sig })
+              if (salt) Object.assign(ret, { salt: postArgs.salt })
+            }
+          }
+        } else {
+          let ret = { numVisited: numVisited, numFound: numFound }
+          if (peers) ret = Object.assign(ret, { peers: peers }, { numFound: peers.length })
+          else if (value !== null) {
+            ret = Object.assign(ret, { v: value })
+            if (mutable) ret = Object.assign(ret, { seq: seq })
+          }
+        }
+        done(ret)
       }
       table.closestContacts().forEach((contact) => {
         ++pending
@@ -351,7 +365,6 @@ const oq = {
         })
       })
     })
-    if (post === 'put') { postArgs.target = target; return postArgs }
   }
 }
 

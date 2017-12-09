@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-// Syntax: test.js [udp-server-port [bootstrap-location]]
+// Syntax: test.js [server-port [bootstrap-location]]
 //
-//  udp-server-port -- valid decimal port number such as 6881 (optional)
+//  server-port -- valid decimal port number (optional, default 6881)
 //  boostrap-location -- address:port like router.utorrent.com:6881, or IPv4-address:port like 67.215.246.10:6881 (optional)
 //
 // Configuration files (in the current directory):
@@ -11,16 +11,18 @@
 // seedPath -- stores 32-byte seed for keyPair generation; if absent, a random seed is created and stored
 // bootPath -- stores 6-byte network location * number of locations to boot from
 //
-// If udp-server-port is 20-bytes or 32-bytes in hex form, then this program functions as a tool to update idPath or seedPath
+// If server-port is 20-bytes or 32-bytes in hex form, then this program functions as a tool to update idPath or seedPath
 
 const fs = require('fs')
 const dns = require('dns')
+const http = require('http')
+const ben = require('bencode')
 const eds = require('ed25519-supercop') // for random
 const dhtInit = require('./mdht')
 
-const idLen = 20; const seedLen = 32; const locLen = 6
+const idLen = 20; const seedLen = 32; const keyLen = 32; const locLen = 6
 const idPath = '.id'; const seedPath = '.seed'; const bootPath = '.boot'
-let dht, pKey
+let dht, pKey; let port = 6881
 
 function report (mess, err) {
   console.log('%s: %s', timeStr(Date.now()), mess)
@@ -35,14 +37,14 @@ function loadBuff (path) {
     return fs.readFileSync(path)
   } catch (err) {
     if (err.code === 'ENOENT') return null // file missing
-    report('error reading from ' + path, true)
+    report('error reading from => ' + path, true)
   }
 }
 function saveBuff (buff, path) {
   try {
     fs.writeFileSync(path, buff, { mode: 0o600 })
     return buff
-  } catch (err) { report('error writing to ' + path, true) }
+  } catch (err) { report('error writing to => ' + path, true) }
 }
 function loadOrRandom (path, len) { return (loadBuff(path) || saveBuff(eds.createSeed().slice(0, len), path)) }
 
@@ -62,7 +64,9 @@ arg = args.shift(); if (arg !== undefined) {
   }
   arg.length === idLen * 2 && save(arg, idPath)
   arg.length === seedLen * 2 && save(arg, seedPath)
-  opts.port = parseInt(arg, 10)
+  port = parseInt(arg, 10)
+  ;(port > 0 && port < 65536) || report('invalid port => ' + port, true)
+  opts.port = port
 }
 arg = args.shift(); if (arg !== undefined) bootLoc = arg
 
@@ -88,8 +92,8 @@ function toLoc (str) { // converts 'address:port' to 6-byte hex buffer, where ad
     return Buffer.from(arr)
   }
   const parts = str.split(':')
-  if (parts.length !== 2 || !(parts[1] > 0 && parts[1] < 65536)) report('invalid address:port')
-  else dns.lookup(parts[0], { family: 4 }, (err, address) => { err ? report('dns lookup error') : go(makeLoc(address, parts[1])) })
+  if (parts.length !== 2 || !(parts[1] > 0 && parts[1] < 65536)) report('invalid address:port => ' + str, true)
+  else dns.lookup(parts[0], { family: 4 }, (err, address) => { err ? report('dns lookup error => ' + parts[0], true) : go(makeLoc(address, parts[1])) })
 }
 
 function go (loc) { opts.bootLocs = loc; dht = dhtInit(opts, update) }
@@ -97,11 +101,11 @@ function go (loc) { opts.bootLocs = loc; dht = dhtInit(opts, update) }
 function update (key, val) {
   function addrPort (obj) { return obj.address + ':' + obj.port }
   switch (key) {
-    case 'udpFail': report('fatal error opening port => ' + val); process.exit(0)
+    case 'udpFail': report('fatal error opening port => ' + val, true); break
     case 'id': report('id => ' + val.toString('hex')); break
     case 'publicKey': report('public key => ' + val.toString('hex')); pKey = val; break
-    case 'listening': report('server listening on port => ' + val.port); break
-    case 'ready': report('bootstrap complete, nodes visited => ' + val); next(); break
+    case 'listening': report('udp server listening on port => ' + val.port); break
+    case 'ready': report('bootstrap complete, nodes visited => ' + val); server(); break
     case 'incoming': report('incoming => ' + val.q + ' (' + addrPort(val.socket) + ')'); break
     case 'error': report('error => ' + val.e[0] + ': ' + val.e[1] + ' (' + addrPort(val.socket) + ')'); break
     case 'locs': report('number of contacts => ' + (val.length / locLen) + ', saving to => .boot'); saveBuff(val, '.boot'); break
@@ -115,25 +119,70 @@ function update (key, val) {
   }
 }
 
-function next () {
-  // const ih = Buffer.from('3663c233ac0e1d329f538bab02128ba2c396467a', 'hex'); console.log('ih', ih.toString('hex'))
-  // dht.announcePeer(ih, (numVisited, numAnnounced) => { console.log('visited:', numVisited, 'announced:', numAnnounced) })
-  // dht.getPeers(ih, (numVisited, peers) => {
-  //  console.log('nodes visited:', numVisited)
-  //  if (peers) { console.log('=> peers', peers.length); peers.forEach((peer) => { console.log(peer.toString('hex')) }) }
-  //  else console.log('=> no peers found')
-  // })
+function server () {
+  http.createServer((req, res) => {
+    let data = Buffer.alloc(0)
+    req.on('data', (chunk) => { data = Buffer.concat([data, chunk]) })
+    req.on('end', () => {
+      try { data = ben.decode(data) } catch (err) { data = null }
+      doAPI(data, (results) => { res.end(ben.encode(results)) })
+    })
+  }).listen(port, (err) => {
+    if (err) { report('http server failed to start on port => ' + port, true) }
+    report('http server is listening on port => ' + port)
+  })
+}
 
-  // const v = {m: 'JEB', f: 'MLK'}; let mutableSalt = false; let resetTarget = null
-  // console.log('ret:', dht.putData(v, mutableSalt, resetTarget, (numVisited, numStored) => { console.log('put:', numVisited, numStored) }))
-  // let target = dht.makeImmutableTarget(v); console.log('target', target.toString('hex'))
-  // dht.getData(target, mutableSalt, (numVisited, value) => { console.log('get:', numVisited, value) })
-
-  // mutableSalt = 'salt'
-  // console.log(dht.putData(v, mutableSalt, resetTarget, (numVisited, numStored) => { console.log('put:', numVisited, numStored) }))
-  // target = dht.makeMutableTarget(pKey, mutableSalt); console.log('target', target.toString('hex'))
-  // dht.getData(target, mutableSalt, (numVisited, value) => { console.log('get:', numVisited, value) })
-
-  // resetTarget = target
-  // console.log(dht.putData(v, mutableSalt, resetTarget, (numVisited, numStored) => { console.log('put:', numVisited, numStored) }))
+function doAPI (data, done) {
+  if (!data || !data.method || !data.args) return
+  const method = data.method.toString()
+  const args = data.args
+  let ih
+  switch (method) {
+    case 'announcePeer':
+      ih = args.ih
+      if (!ih || !Buffer.isBuffer(ih) || ih.length !== idLen) { noCall(); break }
+      report('calling => ' + method)
+      dht.announcePeer(ih, done)
+      break
+    case 'getPeers':
+      ih = args.ih
+      if (!ih || !Buffer.isBuffer(ih) || ih.length !== idLen) { noCall(); break }
+      report('calling => ' + method)
+      dht.getPeers(ih, done)
+      break
+    case 'putData':
+      if (!args.hasOwnProperty('v') || !args.hasOwnProperty('mutableSalt')) { noCall(); break }
+      const resetTarget = args.resetTarget
+      if (resetTarget && (!Buffer.isBuffer(resetTarget) || resetTarget.length !== idLen)) { noCall(); break }
+      report('calling => ' + method)
+      dht.putData(args.v, args.mutableSalt, args.resetTarget, done)
+      break
+    case 'getData':
+      if (!args.hasOwnProperty('mutableSalt')) { noCall(); break }
+      const target = args.target
+      if (!target || !Buffer.isBuffer(target) || target.length !== idLen) { noCall(); break }
+      report('calling => ' + method)
+      dht.getData(target, args.mutableSalt, done)
+      break
+    case 'makeMutableTarget':
+      let k = args.k
+      k || (k = pKey)
+      if (!Buffer.isBuffer(k) || k.length !== keyLen) { noCall(); break }
+      if (!args.hasOwnProperty('mutableSalt')) { noCall(); break }
+      report('calling => ' + method)
+      done(dht.makeMutableTarget(k, args.mutableSalt))
+      break
+    case 'makeImmutableTarget':
+      if (!args.hasOwnProperty('v')) { noCall(); break }
+      report('calling => ' + method)
+      done(dht.makeImmutableTarget(args.v))
+      break
+    default:
+      noCall()
+  }
+  function noCall () {
+    report('not called => ' + method)
+    done({})
+  }
 }

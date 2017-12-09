@@ -12,7 +12,7 @@ $ node server.js
 ```
 server.js will connect to the DHT via default UDP port 6881, by bootstraping from
 router.bittorrent.com:6881, and then begin to respond to requests from other nodes,
-using a random node id. Configuration information and incomming requests are displayed on the
+using a random node id. Configuration information and incoming requests are displayed on the
 console. The id and routing table are periodically saved to disk for future restarts.
 
 server.js interfaces between mdht/mdht.js (which in turn interfaces with the DHT network), the user

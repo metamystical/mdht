@@ -22,7 +22,7 @@ commands to issue outgoing requests to other nodes via HTTP on the same port.
 mdht/client.js (under development) shows how to make HTTP requests for getting and putting
 BEP44 data, for example.
 
-### Terminology:
+### Terminology
 
 Term | Description
 -----|------------
@@ -31,12 +31,12 @@ Term | Description
 node | a member of the Mainline DHT network which uses UDP
 peer | a bittorrent client associated with a DHT node which uses TCP, usually on the same port
 
-### Usage (API):
+### Usage (API)
 ```
 const dhtInit = require('mdht')
 const dht = dhtInit(options, update) // options is an object, update is a callback function
 ```
-#### dhtInit options:
+#### dhtInit options
 
 Option | Description
 -------|------------

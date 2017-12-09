@@ -1,7 +1,26 @@
 ## mdht.js -- Mainline DHT
 
-Dynamic Hash Table customized for the mainline DHT used by bittorrent to locate torrent peers without using a tracker.
+Dynamic Hash Table customized for the Mainline DHT used by bittorrent to locate torrent peers without using a tracker.
 Includes BEP44 data storage. IPv4 only. References: [BEP5](http://www.bittorrent.org/beps/bep_0005.html), [BEP44](http://www.bittorrent.org/beps/bep_0044.html)
+
+### Quick start
+
+```
+$ npm i mdht
+$ echo "require('mdht/server')" > server.js
+$ node server.js
+```
+server.js will connect to the DHT via default UDP port 6881, by bootstraping from
+router.bittorrent.com:6881, and then begin to respond to requests from other nodes,
+using a random node id. Configuration information and incomming requests are displayed on the
+console. The id and routing table are periodically saved to disk for future restarts.
+
+server.js interfaces between mdht/mdht.js (which in turn interfaces with the DHT network), the user
+(via the command line) and the disk (to preserve its state between sessions). It also accepts
+commands to issue outgoing requests to other nodes via HTTP on the same port.
+
+mdht/client.js (under development) shows how to make HTTP requests for getting and putting
+BEP44 data, for example.
 
 ### Terminology:
 

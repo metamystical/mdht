@@ -111,17 +111,6 @@ Key | Signal | Value
 'dropPeer' | peer location dropped from storage | 'address:port'
 'dropData' | data dropped from BEP44 storage | 'target' (hex string)
 
-### test.js example program
-This program provides a command line interface for mdht.js as well as
-an interface with disk storage. The *id*, seed and boot *locations* are saved in separate files
-between sessions. Without these files, the DHT will use random values for *id* and seed, but would
-require a boot *location* as a command line argument. Usage: `require('mdht/test.js')` alone in a
-file named, for example, `test.js`.
-
-When executed, the program displays configuration information and incoming requests from other nodes.
-An HTTP server is bound to the same port as the DHT, but uses TCP instead of UDP. The server
-can accept commands via HTTP to initiate outgoing queries. See client.js, for example.
-
 ### shim.js interface with Webtorrent
 This program is a shim between mdht.js and [webtorrent](https://github.com/webtorrent/webtorrent)
 as a replacement for [bittorrent-dht](https://github.com/webtorrent/bittorrent-dht), which is problematic.

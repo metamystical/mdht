@@ -52,7 +52,7 @@ plus .socket in both cases.
 
 makeMutableTarget and makeImmutableTarget are utilities for computing targets (node *ids*) for use
 with getData or putData, which can be called with the arguments target or resetTarget, respectively,
-along with mutableSalt provided by whomever stored the data. If the target is unknown, it can be
+along with mutableSalt, as provided by whomever stored the data. If the target is unknown, it can be
 computed with makeMutableTarget (if k and mutableSalt are known) or makeImmutableTarget
 (if v is known).
 

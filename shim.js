@@ -18,7 +18,7 @@ const update = (key, val) => {
     case 'id': instanceDHT.nodeId = val; break
     case 'listening': udpAddress = val; instanceDHT.listening = true; instanceDHT.emit('listening'); break
     case 'ready': instanceDHT.emit('ready'); break
-    case 'locs': instanceDHT.emit('nodes', val); break
+    case 'nodes': instanceDHT.emit('nodes', val); break
     case 'udpFail': console.log('fatal error opening port => ' + val); process.exit(0)
   }
 }

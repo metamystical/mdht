@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// Syntax: test.js [server-port [bootstrap-location]]
+// Syntax: server.js [server-port [bootstrap-location]]
 //
 //  server-port -- valid decimal port number (optional, default 6881)
 //  boostrap-location -- address:port like router.utorrent.com:6881, or IPv4-address:port like 67.215.246.10:6881 (optional)
@@ -108,7 +108,7 @@ function update (key, val) {
     case 'ready': report('bootstrap complete, nodes visited => ' + val); server(); break
     case 'incoming': report('incoming => ' + val.q + ' (' + addrPort(val.socket) + ')'); break
     case 'error': report('error => ' + val.e[0] + ': ' + val.e[1] + ' (' + addrPort(val.socket) + ')'); break
-    case 'locs': report('number of contacts => ' + (val.length / locLen) + ', saving to => .boot'); saveBuff(val, '.boot'); break
+    case 'nodes': report('number of contacts => ' + (val.length / locLen) + ', saving to => .boot'); saveBuff(val, '.boot'); break
     case 'closest': report('closest contacts =>'); val.forEach((id) => { report(id.toString('hex')) }); break
     case 'peers': report('stored peers => ' + val.numPeers + ', infohashes => ' + val.numInfohashes); break
     case 'data': report('stored data => ' + val); break

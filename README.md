@@ -61,7 +61,7 @@ announcePeer, getPeers, putData, getData initiate outgoing DHT queries to remote
 information and/or results in the first callback function after all nodes have responded.
 
 The first callback function returns a single object with multiple properties pertinent to the method.
-Object properties that do not apply or were not found are ommitted. For example, there will be no
+Object properties that do not apply or were not found are omitted. For example, there will be no
 .values or .v property if no values are found; and .salt, .seq, .k and .sig are only returned for
 mutable data.
 
@@ -90,7 +90,7 @@ Property | Description
 seq | sequence number (int) of mutable data
 sig | ed25519 signature of salt, v and seq (64-byte buffer)
 k | public key used to make a mutable target and to sign and verify mutable data (32-byte buffer); if null, local public key is used
-socket | node socket, object version of node 'location' { address: (string), port: (int) }
+socket | node socket, object version of node *location* { address: (string), port: (int) }
 
 #### update is a function which signals the calling program and is called with two arguments (key, value)
 
@@ -100,10 +100,10 @@ Key | Signal | Value
 'id' | initialized | *id* actually used to create routing table
 'publicKey' | initialized | public key (k) actually used for ed25519 signatures
 'listening' | local udp socket is listening | local socket
-'ready' | bootstrap is complete | number of nodes visited during bootstrap
+'ready' | bootstrap is complete | number of remote nodes visited during bootstrap
 'incoming' | incoming query object | { q: query type (string), socket: remote socket }
 'error' | incoming error object | { e: [error code (int), error message (string)], socket: remote socket }
-'locs' | periodic report | buffer packed with node *locations* from the routing table; may used for disk storage
+'nodes' | periodic report | buffer packed with node *locations* from the routing table; may used for disk storage
 'closest' | periodic report | array of node *ids* from the routing table, the closest nodes to the table *id*
 'peers' | periodic report | { numPeers: number of stored peer locations, numInfohashes: number of stored infohashes }
 'data' | periodic report | number of BEP44 stored data items
@@ -127,9 +127,9 @@ const client = new WebTorrent({ torrentPort: port, dhtPort: port, dht: { nodeId:
 
 Then use (see [torr.js](https://github.com/metamystical/torr) for an example):
 ```
-client.dht.once('ready', function () { )) // bootstrap complete, ready for new torrents
-client.dht.on('nodes', function (nodes) { }) // periodic report of DHT routing table node *locations* for saving
+client.dht.once('ready', () => { }) // bootstrap complete, ready for new torrents
+client.dht.on('nodes', (nodes) => { ... }) // periodic report of DHT routing table node *locations* for saving
 client.dht.nodeId // actual nodeId used
-const ret = client.dht.put(v, mutableSalt, resetTarget, function (numVisited, numStored) { })
-client.dht.get(target, mutableSalt, function (numVisited, { v: (object), seq: (int), numFound: (int) }) { } )
+client.dht.put(v, mutableSalt, resetTarget, callback) // see dht.putData above for first callback syntax
+client.dht.get(target, mutableSalt, callback)  // see dht.getData above for first callback syntax
 ```

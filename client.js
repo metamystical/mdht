@@ -17,7 +17,7 @@ request(
 */
 const salt = ''
 // request(ben.encode({ method: 'putData', args: { v: v, mutableSalt: salt } }), dump)
-s/*
+/*
 request(
   ben.encode({ method: 'makeMutableTarget', args: { k: null, mutableSalt: salt } }), // k == null: use local publick key
   (target) => { request(ben.encode({ method: 'getData', args: { target: target, mutableSalt: salt } }), dump) }

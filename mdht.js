@@ -177,7 +177,7 @@ const my = {
   },
 
   update: () => {
-    go.doUpdate('locs', Buffer.concat(my.table.allContacts().map((contact) => { return contact.loc })))
+    go.doUpdate('nodes', Buffer.concat(my.table.allContacts().map((contact) => { return contact.loc })))
     go.doUpdate('closest', my.table.closestContacts().map((contact) => { return contact.id }))
   }
 }

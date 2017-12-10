@@ -121,7 +121,7 @@ in `node_modules/webtorrent` so that it requires `mdht/shim` rather than `bittor
 const WebTorrent = require('webtorrent')
 // must modify webtorrent to require mdht/shim instead of bittorrent-dht/client
 
-const client = new WebTorrent({ torrentPort: port, dhtPort: port, dht: { nodeId: *id*, bootstrap: bootLocs, seed: seed } })
+const client = new WebTorrent({ torrentPort: port, dhtPort: port, dht: { nodeId: id, bootstrap: bootLocs, seed: seed } })
 // `port` is a port number and `id`, `bootLocs` and `seed` are buffers destined for mdht.js (see dhtInit options above).
 ```
 

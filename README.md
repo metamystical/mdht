@@ -60,15 +60,16 @@ dht.makeImmutableTarget(v)
 announcePeer, getPeers, putData, getData initiate outgoing DHT queries to remote nodes and return
 information and/or results in the first callback function after all nodes have responded.
 
-The first callback function returns a single object with multiple properties pertinent to the method.
+Their first callback function returns a single object with multiple properties pertinent to the method.
 Object properties that do not apply or were not found are omitted. For example, there will be no
 .values or .v property if no values are found; and .salt, .seq, .k and .sig are only returned for
 mutable data.
 
-The second callback function, onV, if not null or undefined, is called immediately whenever peer
+Their second callback function, onV, if not null or undefined, is called immediately whenever peer
 locations or BEP44 data are received from a remote node, with a single argument: an object with
 .target and .values for getPeers and announce Peers, or .ih and .v for getData and putData,
-plus .socket in both cases.
+plus .socket in both cases, which is just an object version of a node *location*
+{ address: (string), port: (int) }.
 
 makeMutableTarget and makeImmutableTarget are utilities for computing targets (node *ids*) for use
 with getData or putData, which can be called with the arguments target or resetTarget, respectively,
@@ -79,18 +80,21 @@ computed with makeMutableTarget (if k and mutableSalt are known) or makeImmutabl
 Argument | Description
 ---------|------------
 ih | infohash, *id* of a torrent
-values | array of peer *locations* which have the torrent with infohash ih
 target | *id* of BEP44 data
 v | BEP44 data stored in or retrieved from the DHT (object, buffer, string or number)
 mutableSalt | if immutable BEP44 data then *false* or *''*; if mutable data then *true* if no salt, or *salt* (non-empty string or buffer -- string will be converted to buffer, buffer will be truncated to 64 bytes)
 resetTarget | if not null, a target used to reset the timeout of previously stored mutable data (v is ignored in this case)
+k | public key used to make a mutable target; if null, local public key is used
 
 Property | Description
 ---------|------------
-seq | sequence number (int) of mutable data
+values | array of peer *locations* which have the torrent with infohash ih
+target | computed *id* of BEP44 data
+v | BEP44 data actually stored; may be a retrieved value if resetTarget is used
+salt | salt actually used (<= 64-byte buffer)
+seq | sequence number (int) of mutable data; outgoing/incoming for putData/getData
+k | public key used to sign and verify mutable data (32-byte buffer)
 sig | ed25519 signature of salt, v and seq (64-byte buffer)
-k | public key used to make a mutable target and to sign and verify mutable data (32-byte buffer); if null, local public key is used
-socket | node socket, object version of node *location* { address: (string), port: (int) }
 
 #### update is a function which signals the calling program and is called with two arguments (key, value)
 

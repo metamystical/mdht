@@ -57,7 +57,7 @@ args.shift(); args.shift()
 let arg
 arg = args.shift(); if (arg !== undefined) {
   const save = (hex, path) => {
-    if (/^0-9a-fA-F/.test(hex)) return
+    if (/[^0-9a-fA-F]/.test(hex)) return
     report('saving => ' + path)
     saveBuff(Buffer.from(hex, 'hex'), path)
     process.exit(1)
@@ -121,16 +121,46 @@ function update (key, val) {
 
 function server () {
   http.createServer((req, res) => {
-    let data = Buffer.alloc(0)
-    req.on('data', (chunk) => { data = Buffer.concat([data, chunk]) })
-    req.on('end', () => {
-      try { data = ben.decode(data) } catch (err) { data = null }
-      doAPI(data, (results) => { res.end(ben.encode(results)) })
-    })
+    switch (req.method) {
+      case 'GET':
+        res.end(client())
+        break
+      case 'POST':
+        let data = Buffer.alloc(0)
+        req.on('data', (chunk) => { data = Buffer.concat([data, chunk]) })
+        req.on('end', () => {
+          try {
+            doAPI(ben.decode(data), (results) => { res.end(ben.encode(results)) })
+          } catch (err) {
+            try {
+              data = JSON.parse(data)
+              walk(data)
+              doAPI(data, (results) => { res.end(JSON.stringify(results)) })
+            } catch (err) {
+              res.end('')
+            }
+          }
+        })
+        break
+      default:
+        res.end('')
+        break
+    }
   }).listen(port, (err) => {
     if (err) { report('http server failed to start on port => ' + port, true) }
     report('http server is listening on port => ' + port)
   })
+}
+
+function walk (obj) { // recursively walk through object, converting { type: 'Buffer', data: array of integers } to buffer
+  for (const k in obj) {
+    if (obj.hasOwnProperty(k)) {
+      const v = obj[k]
+      if (v && v.type === 'Buffer' && Array.isArray(v.data)) {
+        obj[k] = Buffer.from(v.data.map((i) => { let hex = i.toString(16); hex.length === 2 || (hex = '0' + hex); return hex }).join(''), 'hex')
+      } else if (!Array.isArray(obj) && typeof obj !== 'string' && !Buffer.isBuffer(obj)) walk(obj[k])
+    }
+  }
 }
 
 function doAPI (data, done) {
@@ -155,4 +185,78 @@ function doAPI (data, done) {
     else if (method === 'makeMutableTarget') done(dht[method](k, args.mutableSalt))
     else if (method === 'makeImmutableTarget') done(dht[method](args.v))
   }
+}
+
+function client () {
+  return `<!doctype html>
+<html>
+<head>
+  <title>MDHT BEP44 client</title>
+  <script src="http://code.jquery.com/jquery-3.2.1.min.js"></script>
+  <script>
+  $(document).ready(function() {
+    const req = { }
+    function query (request, done) {
+      $.post('http://localhost:${port}', JSON.stringify(request), (data) => { walk(data); done(data) }, 'json')
+    }
+    $("#put").click(function (event) {
+      req.method = 'putData'; req.args = {}
+      const v = $('#v').val()
+      if (v === '') return
+      req.args.v = v
+      query(req, function (data) {
+        $('#target').val(data.target)
+        $('#puts').text(data.numVisited + ', ' + data.numStored)
+      })
+    })
+    $("#get").click(function (event) {
+      req.method = 'getData'; req.args = {}
+      const target = hexToBuff($('#target').val())
+      if (target === '') return
+      req.args.target = target
+      query(req, function (data) {
+        let v = ''
+        let hex = data.v
+        for (let i = 0; i < hex.length; i += 2) { v += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16)) }
+        $('#v').val(v)
+        $('#gets').text(data.numVisited + ', ' + data.numFound)
+      })
+    })
+    function hexToBuff(hex) {
+      if (/[^0-9a-fA-F]/.test(hex) || hex.length != 40) { alert('Enter 40 hex'); return '' }
+      const a = []
+      for (let i = 0; i < 40; i += 2) a.push(parseInt(hex.slice(i, i + 2), 16))
+      return { type: 'Buffer', data: a }
+    }
+    function walk (obj) { // recursively walk through object, converting { type: 'Buffer', data: array of integers } to hex string
+      for (const k in obj) {
+        if (obj.hasOwnProperty(k)) {
+          const v = obj[k]
+          if (v && v.type === 'Buffer' && Array.isArray(v.data)) {
+            obj[k] = v.data.map((i) => { let hex = i.toString(16); hex.length === 2 || (hex = '0' + hex); return hex }).join('')
+          } else if (!Array.isArray(obj) && typeof obj !== 'string') walk(obj[k])
+        }
+      }
+    }
+  })
+  </script>
+</head>
+<body>
+  <table>
+    <tr>
+      <th>Data</th><th>Target</th>
+    </tr><tr>
+      <td><textarea id="v" cols="40" rows="5">One for all</textarea></td>
+      <td><input type="text" id="target" maxlength="40" size="40"></td>
+    </tr><tr>
+      <td><input type = "button" id = "put" value = "Put data"></td>
+      <td><input type = "button" id = "get" value = "Get data"></td>
+    </tr><tr>
+      <td><span id = "puts"></span></td>
+      <td><span id = "gets"></span></td>
+    </tr>
+  </table>
+</body>
+</html>
+`
 }

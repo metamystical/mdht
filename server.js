@@ -137,52 +137,22 @@ function doAPI (data, done) {
   if (!data || !data.method || !data.args) return
   const method = data.method.toString()
   const args = data.args
-  let ih
-  switch (method) {
-    case 'announcePeer':
-      ih = args.ih
-      if (!ih || !Buffer.isBuffer(ih) || ih.length !== idLen) { noCall(); break }
-      report('calling => ' + method)
-      dht.announcePeer(ih, done)
-      break
-    case 'getPeers':
-      ih = args.ih
-      if (!ih || !Buffer.isBuffer(ih) || ih.length !== idLen) { noCall(); break }
-      report('calling => ' + method)
-      dht.getPeers(ih, done)
-      break
-    case 'putData':
-      if (!args.hasOwnProperty('v') || !args.hasOwnProperty('mutableSalt')) { noCall(); break }
-      const resetTarget = args.resetTarget
-      if (resetTarget && (!Buffer.isBuffer(resetTarget) || resetTarget.length !== idLen)) { noCall(); break }
-      report('calling => ' + method)
-      dht.putData(args.v, args.mutableSalt, args.resetTarget, done)
-      break
-    case 'getData':
-      if (!args.hasOwnProperty('mutableSalt')) { noCall(); break }
-      const target = args.target
-      if (!target || !Buffer.isBuffer(target) || target.length !== idLen) { noCall(); break }
-      report('calling => ' + method)
-      dht.getData(target, args.mutableSalt, done)
-      break
-    case 'makeMutableTarget':
-      let k = args.k
-      k || (k = pKey)
-      if (!Buffer.isBuffer(k) || k.length !== keyLen) { noCall(); break }
-      if (!args.hasOwnProperty('mutableSalt')) { noCall(); break }
-      report('calling => ' + method)
-      done(dht.makeMutableTarget(k, args.mutableSalt))
-      break
-    case 'makeImmutableTarget':
-      if (!args.hasOwnProperty('v')) { noCall(); break }
-      report('calling => ' + method)
-      done(dht.makeImmutableTarget(args.v))
-      break
-    default:
-      noCall()
-  }
-  function noCall () {
-    report('not called => ' + method)
-    done({})
+  const target = args.ih || args.target || args.resetTarget
+  let k = args.k
+  k || (k = pKey)
+  if (
+    (!Buffer.isBuffer(k) || k.length !== keyLen) ||
+    (target !== undefined && (!Buffer.isBuffer(target) || target.length !== idLen)) ||
+    ((method === 'announcePeer' || method === 'getPeers' || method === 'getData') && !target) ||
+    ((method === 'putData' || method === 'makeImmutableTarget') && !args.hasOwnProperty('v'))
+  ) {
+    report('not calling => ' + method); done({})
+  } else {
+    report('calling => ' + method)
+    if (method === 'announcePeer' || method === 'getPeers') dht[method](target, done)
+    else if (method === 'putData') dht[method](args.v, args.mutableSalt, target, done)
+    else if (method === 'getData') dht[method](target, args.mutableSalt, done)
+    else if (method === 'makeMutableTarget') done(dht[method](k, args.mutableSalt))
+    else if (method === 'makeImmutableTarget') done(dht[method](args.v))
   }
 }

@@ -199,31 +199,52 @@ function client () {
     function query (request, done) {
       $.post('http://localhost:${port}', JSON.stringify(request), (data) => { walk(data); done(data) }, 'json')
     }
-    $("#put").click(function (event) {
+    $('#put').click(function (event) {
       req.method = 'putData'; req.args = {}
       const v = $('#v').val()
       if (v === '') return
       req.args.v = v
+      const mutable = $('#mutable').prop('checked')
+      const salt = $('#salt').val()
+      req.args.mutableSalt = mutable
+      if (mutable && salt !== '') req.args.mutableSalt = salt
       query(req, function (data) {
-        $('#target').val(data.target)
-        $('#puts').text(data.numVisited + ', ' + data.numStored)
+        data.target && $('#target').val(data.target)
+        let a = []
+        data.numVisited && a.push('numVisited: ' + data.numVisited)
+        data.numStored && a.push('numStored: ' + data.numStored)
+        data.seq && a.push('seq: ' + data.seq)
+        $('#puts').text(a.join(', '))
       })
     })
-    $("#get").click(function (event) {
+    $('#get').click(function (event) {
       req.method = 'getData'; req.args = {}
-      const target = hexToBuff($('#target').val())
+      const target = checkHex($('#target').val())
       if (target === '') return
-      req.args.target = target
+      req.args.target = hexToBuff(target)
+      const salt = $('#salt').val()
+      const mutable = $('#mutable').prop('checked')
+      req.args.mutableSalt = mutable
+      if (mutable && salt !== '') req.args.mutableSalt = salt
       query(req, function (data) {
-        let v = ''
-        let hex = data.v
-        for (let i = 0; i < hex.length; i += 2) { v += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16)) }
-        $('#v').val(v)
-        $('#gets').text(data.numVisited + ', ' + data.numFound)
+        data.v && $('#v').val(hexToString(data.v))
+        let a = []
+        data.numVisited && a.push('numVisited: ' + data.numVisited)
+        data.numFound && a.push('numFound: ' + data.numFound)
+        data.seq && a.push('seq: ' + data.seq)
+        $('#gets').text(a.join(', '))
       })
     })
-    function hexToBuff(hex) {
+    function hexToString(hex) {
+      let str = ''
+      for (let i = 0; i < hex.length; i += 2) { str += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16)) }
+      return str
+    }
+    function checkHex(hex) {
       if (/[^0-9a-fA-F]/.test(hex) || hex.length != 40) { alert('Enter 40 hex'); return '' }
+      return hex
+    }
+    function hexToBuff(hex) {
       const a = []
       for (let i = 0; i < 40; i += 2) a.push(parseInt(hex.slice(i, i + 2), 16))
       return { type: 'Buffer', data: a }
@@ -242,6 +263,8 @@ function client () {
   </script>
 </head>
 <body>
+  <p>Mutable: <input type="checkbox" id="mutable"></p>
+  <p>Salt: <input type="text" id="salt" size="30"></p>
   <table>
     <tr>
       <th>Data</th><th>Target</th>

@@ -196,45 +196,36 @@ function client () {
   <script>
   $(document).ready(function() {
     const req = { }
-    function query (request, done) {
-      $.post('http://localhost:${port}', JSON.stringify(request), (data) => { walk(data); done(data) }, 'json')
-    }
+    function query (request, done) { $.post('http://localhost:${port}', JSON.stringify(request), (data) => { walk(data); done(data) }, 'json') }
     $('#put').click(function (event) {
       req.method = 'putData'; req.args = {}
       const v = $('#v').val()
       if (v === '') return
-      req.args.v = v
-      const mutable = $('#mutable').prop('checked')
-      const salt = $('#salt').val()
-      req.args.mutableSalt = mutable
-      if (mutable && salt !== '') req.args.mutableSalt = salt
+      req.args.v = v; req.args.mutableSalt = mutableSalt()
       query(req, function (data) {
         data.target && $('#target').val(data.target)
-        let a = []
-        data.numVisited && a.push('numVisited: ' + data.numVisited)
-        data.numStored && a.push('numStored: ' + data.numStored)
-        data.seq && a.push('seq: ' + data.seq)
-        $('#puts').text(a.join(', '))
+        delete data.target; delete data.v; delete data.k; delete data.sig; delete data.salt
+        $('#puts').text(report(data))
       })
     })
     $('#get').click(function (event) {
       req.method = 'getData'; req.args = {}
       const target = checkHex($('#target').val())
       if (target === '') return
-      req.args.target = hexToBuff(target)
-      const salt = $('#salt').val()
-      const mutable = $('#mutable').prop('checked')
-      req.args.mutableSalt = mutable
-      if (mutable && salt !== '') req.args.mutableSalt = salt
+      req.args.target = hexToBuff(target); req.args.mutableSalt = mutableSalt()
       query(req, function (data) {
         data.v && $('#v').val(hexToString(data.v))
-        let a = []
-        data.numVisited && a.push('numVisited: ' + data.numVisited)
-        data.numFound && a.push('numFound: ' + data.numFound)
-        data.seq && a.push('seq: ' + data.seq)
-        $('#gets').text(a.join(', '))
+        delete data.v
+        $('#gets').text(report(data))
       })
     })
+    function mutableSalt () {
+      const mutable = $('#mutable').prop('checked')
+      const salt = $('#salt').val()
+      if (mutable && salt !== '') return salt
+      return mutable
+    }
+    function report (obj) { return Object.entries(obj).map(([k, v]) => { return k + ': ' + v }).join(', ') }
     function hexToString(hex) {
       let str = ''
       for (let i = 0; i < hex.length; i += 2) { str += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16)) }

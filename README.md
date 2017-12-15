@@ -83,7 +83,7 @@ Argument | Description
 ---------|------------
 ih | infohash, *id* of a torrent
 target | *id* of BEP44 data
-v | BEP44 data stored in or retrieved from the DHT (object, buffer, string or number)
+v | BEP44 data to be stored in the DHT (object, buffer, string or number)
 mutableSalt | if immutable BEP44 data then *false* or *''*; if mutable data then *true* if no salt, or *salt* (non-empty string or buffer -- string will be converted to buffer, buffer will be truncated to 64 bytes)
 resetTarget | if not null, a target used to reset the timeout of previously stored mutable data (v is ignored in this case)
 k | public key used to make a mutable target; if null, local public key is used
@@ -92,7 +92,7 @@ Property | Description
 ---------|------------
 values | array of peer *locations* which have the torrent with infohash ih
 target | computed *id* of BEP44 data
-v | BEP44 data actually stored; may be a retrieved value if resetTarget is used
+v | for putData, BEP44 data actually stored (may be a retrieved value if resetTarget is used); for getData, retrieved BEP44 data
 salt | salt actually used (<= 64-byte buffer)
 seq | sequence number (int) of mutable data; outgoing/incoming for putData/getData
 k | public key used to sign and verify mutable data (32-byte buffer)

@@ -29,7 +29,7 @@ putting BEP44 data.
 
 Term | Description
 -----|------------
-*location* | network *location* (6-byte buffer: 4-byte IPv4 address + 2-byte port); example: Buffer.from('ff0000011ae1', 'hex') is '127.0.0.1:6881'
+*location* | network *location* (6-byte buffer: 4-byte IPv4 address + 2-byte port); example: Buffer.from('ff0000011ae1', 'hex') represents 127.0.0.1:6881
 *id* | DHT node *id*, infohash of a torrent, or target of BEP44 data (20-byte buffer)
 node | a member of the Mainline DHT network which uses UDP
 peer | a bittorrent client associated with a DHT node which uses TCP, usually on the same port

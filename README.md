@@ -60,7 +60,7 @@ dht.makeImmutableTarget(v)
 ##### where:
 
 announcePeer, getPeers, putData, getData initiate outgoing DHT queries to remote nodes and return
-information and/or results in the first callback function after all nodes have responded.
+information and/or results in their first callback function after all nodes have responded.
 
 Their first callback function returns a single object with multiple properties pertinent to the method.
 Object properties that do not apply or were not found are omitted. For example, there will be no
@@ -134,7 +134,7 @@ const client = new WebTorrent({ torrentPort: port, dhtPort: port, dht: { nodeId:
 Then use (see [torr.js](https://github.com/metamystical/torr) for an example):
 ```
 client.dht.once('ready', () => { }) // bootstrap complete, ready for new torrents
-client.dht.on('nodes', (nodes) => { ... }) // periodic report of DHT routing table node *locations* for saving
+client.dht.on('nodes', (nodes) => { ... }) // periodic report of DHT routing table node locations for saving
 client.dht.nodeId // actual nodeId used
 client.dht.put(v, mutableSalt, resetTarget, callback) // see dht.putData above for first callback syntax
 client.dht.get(target, mutableSalt, callback)  // see dht.getData above for first callback syntax

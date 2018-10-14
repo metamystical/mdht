@@ -1,6 +1,6 @@
 {
   "name": "mdht",
-  "version": "2.3.3",
+  "version": "2.3.4",
   "main": "mdht.js",
   "description": "Mainline DHT",
   "license": "MIT",
@@ -9,7 +9,6 @@
     "url": "https://github.com/metamystical/mdht.git"
   },
   "dependencies": {
-    "bencode": "^1.0.0",
     "ed25519-supercop": "^1.0.2"
   }
 }

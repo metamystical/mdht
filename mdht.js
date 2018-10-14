@@ -12,9 +12,10 @@
 
 const crypto = require('crypto')
 const dgram = require('dgram')
-const ben = require('bencode')
 const eds = require('ed25519-supercop')
 const Table = require('./table')
+const encode = require('./encode-torrent')
+const decode = require('./decode-torrent')
 
 // constants and utilities
 const ut = {
@@ -72,9 +73,9 @@ const ut = {
     }
     return ut.sha1(mutableSalt ? Buffer.concat([k, mutableSalt]) : k)
   },
-  makeImmutableTarget: (v) => { return ut.sha1(ben.encode(v)) },
+  makeImmutableTarget: (v) => { return ut.sha1(encode(v)) },
   packSeqSalt: (seq, v, salt) => {
-    const es = (obj) => { return ben.encode(obj).slice(1, -1) }
+    const es = (obj) => { return encode(obj).slice(1, -1) }
     const arr = []
     salt && salt.length && arr.push(es({ salt: salt }))
     arr.push(es({ seq: seq }))
@@ -151,8 +152,10 @@ const sr = {
     if (sr.spam[key] === sr.spamLimit) go.doUpdate('spam', key)
     if (sr.spam[key] > sr.spamLimit) return
 
-    try { mess = ben.decode(mess) } catch (err) { mess = null }
-    if (!mess || !mess.y) return
+    mess = decode(mess)
+    if (!mess) return
+    mess = mess.meta
+    if (!mess.y) return
     const y = mess.y.toString()
     if (y === 'q') iq.query(mess, rinfo) // incoming unsolicited query, response expected
     else if (y === 'r' || y === 'e') oq.resp(y, mess, rinfo) // incoming solicted response
@@ -225,7 +228,7 @@ const oq = {
     const mess = { t: ut.intToBuff2(oq.tCount), y: 'q', q: q, a: a }
     oq.pendingQueries[oq.tCount.toString()] = { tick: oq.pendingTick, done: done }
     ++oq.tCount > 65535 && (oq.tCount = 0)
-    sr.send(ben.encode(mess), loc)
+    sr.send(encode(mess), loc)
   },
 
   resp: (y, mess, rinfo) => {
@@ -328,7 +331,7 @@ const oq = {
               res.values.forEach((peer) => { if (!unique.includes(peer)) { unique = Buffer.concat([unique, peer]); peers.push(peer) } })
               if (onV) { onV({ ih: target, values: res.values, socket: socket }) }
             } else if (res.v) { // get
-              if (ben.encode(res.v).length > ut.maxV) { finish(); return }
+              if (encode(res.v).length > ut.maxV) { finish(); return }
               if (mutable) { // mutable
                 if (!(res.seq && res.k && res.sig && res.k.length === ut.keyLen && res.sig.length === ut.sigLen)) { finish(); return }
                 if (!target.equals(ut.makeMutableTarget(res.k, salt))) { finish(); return }
@@ -378,7 +381,7 @@ const iq = {
   newSecret: () => { iq.oldSecret = iq.secret; iq.secret = ut.random(ut.idLen) },
 
   query: (mess, rinfo) => {
-    const sendErr = (code, msg) => { sr.send(ben.encode({ t: mess.t, y: 'e', e: [code, msg] }), rinfo) }
+    const sendErr = (code, msg) => { sr.send(encode({ t: mess.t, y: 'e', e: [code, msg] }), rinfo) }
     const contactsToNodes = (contacts) => {
       let nodes = []; let num = 0
       contacts.forEach((contact) => { nodes.push(contact.id, contact.loc); ++num })
@@ -426,7 +429,7 @@ const iq = {
     } else if (q === 'put') {
       if (!validToken) { sendErr(203, 'Invalid token'); return }
       if (!a.v) { sendErr(203, 'Missing v'); return }
-      if (ben.encode(a.v).length > ut.maxV) { sendErr(205, 'Message (v) too big'); return }
+      if (encode(a.v).length > ut.maxV) { sendErr(205, 'Message (v) too big'); return }
       let datum
       const hasSeq = a.hasOwnProperty('seq')
       const all = a.k && hasSeq && a.sig
@@ -446,11 +449,11 @@ const iq = {
         if (oldDatum) {
           if (a.hasOwnProperty('cas') && a.cas !== oldDatum.seq) { sendErr(301, 'CAS mismatch'); return }
           if (oldDatum.seq > a.seq) { sendErr(302, 'Sequence number too small'); return }
-          if (oldDatum.seq === a.seq && !ben.encode(oldDatum.v).equals(ben.encode(a.v))) { sendErr(302, 'Sequence number too small'); return }
+          if (oldDatum.seq === a.seq && !encode(oldDatum.v).equals(encode(a.v))) { sendErr(302, 'Sequence number too small'); return }
         }
         datum = { v: a.v, k: a.k, seq: a.seq, sig: a.sig }
       } else { // immutable
-        target = ut.sha1(ben.encode(a.v))
+        target = ut.sha1(encode(a.v))
         datum = { v: a.v }
       }
       if (!ut.byteMatch(target, my.id, iq.match)) return
@@ -460,7 +463,7 @@ const iq = {
       sendErr(204, 'Method unkown')
       return
     }
-    sr.send(ben.encode(resp), contact.loc)
+    sr.send(encode(resp), contact.loc)
   }
 }
 

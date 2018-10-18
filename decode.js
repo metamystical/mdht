@@ -18,7 +18,6 @@ function decode (buff) {
     const dict = {}
     while (buff[i] !== code('e') && i < len) {
       const key = string()
-      const start = i
       const val = next()
       dict[key] = val
     }

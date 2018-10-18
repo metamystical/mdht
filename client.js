@@ -1,6 +1,6 @@
 const http = require('http')
-const encode = require('./encode-torrent')
-const decode = require('./decode-torrent')
+const encode = require('./encode')
+const decode = require('./decode')
 
 const dump = (data) => { console.log(data) }
 
@@ -44,7 +44,7 @@ function request (post, done) {
     (res) => {
       let data = Buffer.alloc(0)
       res.on('data', (chunk) => { data = Buffer.concat([data, chunk]) })
-      res.on('end', () => { data = decode(data); done(data ? data.meta : data) })
+      res.on('end', () => { done(decode(data)) })
     }
   ).end(post)
 }

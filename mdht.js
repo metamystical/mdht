@@ -14,8 +14,8 @@ const crypto = require('crypto')
 const dgram = require('dgram')
 const eds = require('ed25519-supercop')
 const Table = require('./table')
-const encode = require('./encode-torrent')
-const decode = require('./decode-torrent')
+const encode = require('./encode')
+const decode = require('./decode')
 
 // constants and utilities
 const ut = {
@@ -153,9 +153,7 @@ const sr = {
     if (sr.spam[key] > sr.spamLimit) return
 
     mess = decode(mess)
-    if (!mess) return
-    mess = mess.meta
-    if (!mess.y) return
+    if (!mess || !mess.y) return
     const y = mess.y.toString()
     if (y === 'q') iq.query(mess, rinfo) // incoming unsolicited query, response expected
     else if (y === 'r' || y === 'e') oq.resp(y, mess, rinfo) // incoming solicted response

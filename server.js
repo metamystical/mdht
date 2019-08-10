@@ -3,7 +3,7 @@
 // Syntax: server.js [server-port [bootstrap-location]]
 //
 //  server-port -- valid decimal port number (optional, default 6881)
-//  boostrap-location -- address:port like router.utorrent.com:6881, or IPv4-address:port like 67.215.246.10:6881 (optional)
+//  boostrap-location -- address:port like router.utorrent.com:6881, or IPv4-address:port like 67.215.246.10:6881 (optional, default router.bittorrent.com:6881)
 //
 // Configuration files (in the current directory):
 //
@@ -23,6 +23,7 @@ const decode = require('./decode')
 
 const idLen = 20; const seedLen = 32; const keyLen = 32; const locLen = 6
 const idPath = '.id'; const seedPath = '.seed'; const bootPath = '.boot'
+const defaultBootLoc = 'router.bittorrent.com:6881' // alternate router.utorrent.com:6881
 let dht, pKey; let port = 6881
 
 function report (mess, err) {
@@ -49,9 +50,7 @@ function saveBuff (buff, path) {
 }
 function loadOrRandom (path, len) { return (loadBuff(path) || saveBuff(eds.createSeed().slice(0, len), path)) }
 
-const defaultBootLoc = 'router.bittorrent.com:6881' // alternate router.utorrent.com:6881
 let bootLoc = bootPath
-
 const opts = {}
 const args = process.argv
 args.shift(); args.shift()

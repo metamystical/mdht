@@ -56,6 +56,7 @@ dht.putData(v, mutableSalt, resetTarget, ({ numVisited: ..., numStored: ..., tar
 dht.getData(target, mutableSalt, ({ numVisited: ..., numFound: ..., v: ..., seq: ... }) => {}, onV)
 dht.makeMutableTarget(k, mutableSalt)
 dht.makeImmutableTarget(v)
+dht.stop()
 ```
 ##### where:
 
@@ -78,6 +79,8 @@ with getData or putData, which can be called with the arguments target or resetT
 along with mutableSalt, as provided by whomever stored the data. If the target is unknown, it can be
 computed with makeMutableTarget (if k and mutableSalt are known) or makeImmutableTarget
 (if v is known).
+
+stop stops timers and closes the udp connection, thus stopping the DHT.
 
 Argument | Description
 ---------|------------

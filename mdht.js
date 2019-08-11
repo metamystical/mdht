@@ -87,6 +87,8 @@ const ut = {
 // options and main interval loop
 const go = {
   update: null,
+  checkInterval: null,
+  longInterval: null,
 
   doUpdate: (key, val) => { go.update && go.update(key, val) },
 
@@ -105,9 +107,9 @@ const go = {
     go.doUpdate('publicKey', my.keyPair.publicKey)
     my.table = new Table(my.id)
 
-    setInterval(oq.check, oq.checkInterval) // start outgoing query manager
+    go.checkInterval = setInterval(oq.check, oq.checkInterval) // start outgoing query manager
     sr.init(my.populate) // initialize server and populate my routing table
-    setInterval(() => {
+    go.longInterval = setInterval(() => {
       sr.spamReset() // reset spam filter
       my.refreshTable() // ping oldest nodes in my routing table
       iq.newSecret() // create new secret
@@ -121,8 +123,15 @@ const go = {
       putData: pi.putData,
       getData: pi.getData,
       makeMutableTarget: ut.makeMutableTarget,
-      makeImmutableTarget: ut.makeImmutableTarget
+      makeImmutableTarget: ut.makeImmutableTarget,
+      stop: go.stop
     }
+  },
+
+  stop: () => {
+    clearInterval(go.checkInterval)
+    clearInterval(go.longInterval)
+    sr.udp.close()
   }
 }
 

@@ -60,7 +60,7 @@ dht.stop()
 ```
 ##### where:
 
-announcePeer, getPeers, putData, getData initiate outgoing DHT queries to remote nodes and return
+*announcePeer*, *getPeers*, *putData* and *getData* initiate outgoing DHT queries to remote nodes and return
 information and/or results in their first callback function after all nodes have responded.
 
 Their first callback function returns a single object with multiple properties pertinent to the method.
@@ -70,17 +70,17 @@ mutable data.
 
 Their second callback function, onV, if not null or undefined, is called immediately whenever peer
 locations or BEP44 data are received from a remote node, with a single argument: an object with
-.target and .values for getPeers and announce Peers, or .ih and .v for getData and putData,
+.target and .values for *getPeers* and *announcePeer*, or .ih and .v for *getData* and *putData*,
 plus .socket in both cases, which is just an object version of a node *location*
 { address: (string), port: (int) }.
 
-makeMutableTarget and makeImmutableTarget are utilities for computing targets (node *ids*) for use
-with getData or putData, which can be called with the arguments target or resetTarget, respectively,
+*makeMutableTarget* and *makeImmutableTarget* are utilities for computing targets (node *ids*) for use
+with *getData* or *putData*, which can be called with the arguments target or resetTarget, respectively,
 along with mutableSalt, as provided by whomever stored the data. If the target is unknown, it can be
-computed with makeMutableTarget (if k and mutableSalt are known) or makeImmutableTarget
+computed with *makeMutableTarget* (if k and mutableSalt are known) or *makeImmutableTarget*
 (if v is known).
 
-stop stops timers and closes the udp connection, thus stopping the DHT.
+*stop* stops timers and closes the udp connection, thus stopping the DHT.
 
 Argument | Description
 ---------|------------

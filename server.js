@@ -3,7 +3,8 @@
 // Syntax: server.js [server-port [bootstrap-location]]
 //
 //  server-port -- valid decimal port number (optional, default 6881)
-//  boostrap-location -- address:port like router.utorrent.com:6881, or IPv4-address:port like 67.215.246.10:6881 (optional, default router.bittorrent.com:6881)
+//  boostrap-location -- address:port like router.utorrent.com:6881, or IPv4-address:port like 67.215.246.10:6881
+//    (optional, default router.bittorrent.com:6881; only used when bootPath file is missing)
 //
 // Configuration files (in the current directory):
 //

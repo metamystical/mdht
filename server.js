@@ -19,8 +19,6 @@ const dns = require('dns')
 const http = require('http')
 const eds = require('ed25519-supercop') // for random
 const dhtInit = require('./mdht')
-const encode = require('./encode')
-const decode = require('./decode')
 
 const idLen = 20; const seedLen = 32; const keyLen = 32; const locLen = 6
 const idPath = '.id'; const seedPath = '.seed'; const bootPath = '.boot'
@@ -130,16 +128,12 @@ function server () {
         let data = Buffer.alloc(0)
         req.on('data', (chunk) => { data = Buffer.concat([data, chunk]) })
         req.on('end', () => {
-          const decoded = decode(data)
-          if (decoded) doAPI(decoded, (results) => { res.end(encode(results)) })
-          else {
-            try {
-              data = JSON.parse(data)
-              walk(data)
-              doAPI(data, (results) => { res.end(JSON.stringify(results)) })
-            } catch (err) {
-              res.end('')
-            }
+          try {
+            data = JSON.parse(data)
+            walk(data)
+            doAPI(data, (results) => { res.end(JSON.stringify(results)) })
+          } catch (err) {
+            res.end('')
           }
         })
         break
@@ -173,7 +167,7 @@ function doAPI (data, done) {
   k || (k = pKey)
   if (
     (!Buffer.isBuffer(k) || k.length !== keyLen) ||
-    (target !== undefined && (!Buffer.isBuffer(target) || target.length !== idLen)) ||
+    (target && (!Buffer.isBuffer(target) || target.length !== idLen)) ||
     ((method === 'announcePeer' || method === 'getPeers' || method === 'getData') && !target) ||
     ((method === 'putData' || method === 'makeImmutableTarget') && !args.hasOwnProperty('v'))
   ) {

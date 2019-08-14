@@ -27,7 +27,7 @@ const client = {
     request({ method: 'getData', args: { target: target, mutableSalt: mutableSalt } }, next)
   },
 
-  makeMutableTarget: (k, mutableSalt) => {
+  makeMutableTarget: (k, mutableSalt, next) => {
     request({ method: 'makeMutableTarget', args: { k: k, mutableSalt: mutableSalt } }, next)
   },
 

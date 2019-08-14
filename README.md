@@ -20,8 +20,8 @@ server.js interfaces between mdht/mdht.js (which in turn interfaces with the DHT
 (via the command line) and the disk (to preserve its state between sessions). It also accepts
 commands to issue outgoing requests to other nodes via HTTP on the same port.
 
-mdht/client.js (under development) shows how to make HTTP requests for getting and putting
-BEP44 data from a node.js program. Alternatively, requests can be made from a browser.
+mdht/client.js is an interface to server.js via HTTP for inclusion in a client app.
+Alternatively, requests to a running instance of server.js can be made from a browser.
 Navigating to http://localhost:6881 loads a web page with a simple UI for getting and
 putting BEP44 data.
 

@@ -51,7 +51,7 @@ options.bootLocs | remote node *locations* to contact at startup (buffer of conc
 #### dhtInit returns an object with the following methods:
 ```
 dht.announcePeer(ih, ({ numVisited: ..., numAnnounced: ... }) => {}, onV) // assumes local peer uses options.port
-dht.getPeers(ih, ({ numVisited: ..., values: ... }) => {}, onV)
+dht.getPeers(ih, ({ numVisited: ..., numFound: ..., peers: ... }) => {}, onV)
 dht.putData(v, mutableSalt, resetTarget, ({ numVisited: ..., numStored: ..., target: ..., v: ..., salt: ..., seq: ..., k: ..., sig: ... }) => {}, onV)
 dht.getData(target, mutableSalt, ({ numVisited: ..., numFound: ..., v: ..., seq: ... }) => {}, onV)
 dht.makeMutableTarget(k, mutableSalt)
@@ -65,7 +65,7 @@ information and/or results in their first callback function after all nodes have
 
 Their first callback function returns a single object with multiple properties pertinent to the method.
 Object properties that do not apply or were not found are omitted. For example, there will be no
-.values or .v property if no values are found; and .salt, .seq, .k and .sig are only returned for
+.peers or .v property if no peers or values are found; and .salt, .seq, .k and .sig are only returned for
 mutable data.
 
 Their second callback function, onV, if not null or undefined, is called immediately whenever peer

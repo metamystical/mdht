@@ -11,8 +11,8 @@ const client = {
     client.serverPort = port
   },
 
-  announcePeer: (ih, next) => {
-    request({ method: 'announcePeer', args: { ih: ih } }, next)
+  announcePeer: (ih, port, impliedPort, next) => {
+    request({ method: 'announcePeer', args: { ih: ih, port: port, impliedPort: impliedPort } }, next)
   },
 
   getPeers: (ih, next) => {

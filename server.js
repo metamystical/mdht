@@ -174,7 +174,8 @@ function doAPI (data, done) {
     report('not calling => ' + method); done({})
   } else {
     report('calling => ' + method)
-    if (method === 'announcePeer' || method === 'getPeers') dht[method](target, done)
+    if (method === 'announcePeer') dht[method](target, args.port, args.impliedPort, done)
+    else if (method === 'getPeers') dht[method](target, done)
     else if (method === 'putData') dht[method](args.v, args.mutableSalt, target, done)
     else if (method === 'getData') dht[method](target, args.mutableSalt, done)
     else if (method === 'makeMutableTarget') done(dht[method](k, args.mutableSalt))

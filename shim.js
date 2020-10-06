@@ -42,6 +42,6 @@ DHT.prototype.listen = (port) => {
   DHT.prototype.get = dht.getData
 }
 DHT.prototype.address = () => { return udpAddress }
-DHT.prototype.announce = (infoHash, port, done) => { dht.announcePeer(Buffer.from(infoHash, 'hex'), (ret) => { done() }, onPeers) }
+DHT.prototype.announce = (infoHash, port, done) => { dht.announcePeer(Buffer.from(infoHash, 'hex'), port, 0, (ret) => { done() }, onPeers) }
 DHT.prototype.destroy = (done) => { process.exit(0) }
 DHT.prototype.addNode = (obj) => { }

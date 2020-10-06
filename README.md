@@ -50,7 +50,7 @@ options.bootLocs | remote node *locations* to contact at startup (buffer of conc
 
 #### dhtInit returns an object with the following methods:
 ```
-dht.announcePeer(ih, port, implied_port, ({ numVisited: ..., numStored: ... }) => {}, onV) // assumes local peer uses options.port
+dht.announcePeer(ih, port, implied_port, ({ numVisited: ..., numStored: ... }) => {}, onV)
 dht.getPeers(ih, ({ numVisited: ..., numFound: ..., peers: ... }) => {}, onV)
 dht.putData(v, mutableSalt, resetTarget, ({ numVisited: ..., numStored: ..., target: ..., v: ..., salt: ..., seq: ..., k: ..., sig: ... }) => {}, onV)
 dht.getData(target, mutableSalt, ({ numVisited: ..., numFound: ..., v: ..., seq: ... }) => {}, onV)

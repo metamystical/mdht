@@ -9,6 +9,6 @@
     "url": "https://github.com/metamystical/mdht.git"
   },
   "dependencies": {
-    "ed25519-supercop": "^1.0.2"
+    "ed25519-supercop": "^2.0.1"
   }
 }

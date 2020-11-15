@@ -16,6 +16,7 @@
 
 const fs = require('fs')
 const dns = require('dns')
+const url = require('url')
 const http = require('http')
 const eds = require('ed25519-supercop') // for random
 const dhtInit = require('./mdht')
@@ -119,10 +120,18 @@ function update (key, val) {
 }
 
 function server () {
+  const menu = loadBuff('menu.html').toString()
+  const BEP44 = loadBuff('BEP44.html').toString()
+  const announce = ''
   http.createServer((req, res) => {
     switch (req.method) {
       case 'GET':
-        res.end(client())
+        switch (url.parse(req.url).pathname) {
+          case '/': res.end(menu); break
+          case '/BEP44': res.end(BEP44); break
+          case '/announce': res.end(announce); break
+          default: res.end('Bad URL')
+        }
         break
       case 'POST':
         let data = Buffer.alloc(0)
@@ -181,92 +190,4 @@ function doAPI (data, done) {
     else if (method === 'makeMutableTarget') done(dht[method](k, args.mutableSalt))
     else if (method === 'makeImmutableTarget') done(dht[method](args.v))
   }
-}
-
-function client () {
-  return `<!doctype html>
-<html>
-<head>
-  <title>MDHT BEP44 client</title>
-  <script src="http://code.jquery.com/jquery-3.2.1.min.js"></script>
-  <script>
-  $(document).ready(function() {
-    const req = { }
-    function query (request, done) { $.post('http://localhost:${port}', JSON.stringify(request), (data) => { walk(data); done(data) }, 'json') }
-    $('#put').click(function (event) {
-      req.method = 'putData'; req.args = {}
-      const v = $('#v').val()
-      if (v === '') return
-      req.args.v = v; req.args.mutableSalt = mutableSalt()
-      query(req, function (data) {
-        data.target && $('#target').val(data.target)
-        delete data.target; delete data.v; delete data.k; delete data.sig; delete data.salt
-        $('#puts').text(report(data))
-      })
-    })
-    $('#get').click(function (event) {
-      req.method = 'getData'; req.args = {}
-      const target = checkHex($('#target').val())
-      if (target === '') return
-      req.args.target = hexToBuff(target); req.args.mutableSalt = mutableSalt()
-      query(req, function (data) {
-        data.v && $('#v').val(hexToString(data.v))
-        delete data.v
-        $('#gets').text(report(data))
-      })
-    })
-    function mutableSalt () {
-      const mutable = $('#mutable').prop('checked')
-      const salt = $('#salt').val()
-      if (mutable && salt !== '') return salt
-      return mutable
-    }
-    function report (obj) { return Object.entries(obj).map(([k, v]) => { return k + ': ' + v }).join(', ') }
-    function hexToString(hex) {
-      let str = ''
-      for (let i = 0; i < hex.length; i += 2) { str += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16)) }
-      return str
-    }
-    function checkHex(hex) {
-      if (/[^0-9a-fA-F]/.test(hex) || hex.length != 40) { alert('Enter 40 hex'); return '' }
-      return hex
-    }
-    function hexToBuff(hex) {
-      const a = []
-      for (let i = 0; i < 40; i += 2) a.push(parseInt(hex.slice(i, i + 2), 16))
-      return { type: 'Buffer', data: a }
-    }
-    function walk (obj) { // recursively walk through object, converting { type: 'Buffer', data: array of integers } to hex string
-      for (const k in obj) {
-        if (obj.hasOwnProperty(k)) {
-          const v = obj[k]
-          if (v && v.type === 'Buffer' && Array.isArray(v.data)) {
-            obj[k] = v.data.map((i) => { let hex = i.toString(16); hex.length === 2 || (hex = '0' + hex); return hex }).join('')
-          } else if (!Array.isArray(obj) && typeof obj !== 'string') walk(obj[k])
-        }
-      }
-    }
-  })
-  </script>
-</head>
-<body>
-  <p>Mutable: <input type="checkbox" id="mutable"></p>
-  <p>Salt: <input type="text" id="salt" size="30"></p>
-  <table>
-    <tr>
-      <th>Data</th><th>Target</th>
-    </tr><tr>
-      <td><textarea id="v" cols="40" rows="5">One for all</textarea></td>
-      <td><input type="text" id="target" maxlength="40" size="40"></td>
-    </tr><tr>
-      <td><input type = "button" id = "put" value = "Put data"></td>
-      <td><input type = "button" id = "get" value = "Get data"></td>
-    </tr><tr>
-      <td><span id = "puts"></span></td>
-      <td><span id = "gets"></span></td>
-    </tr>
-  </table>
-</body>
-</html>
-`
 }

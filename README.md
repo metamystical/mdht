@@ -120,25 +120,3 @@ Key | Signal | Value
 'dropNode' | node dropped from routing table | 'address:port'
 'dropPeer' | peer location dropped from storage | 'address:port'
 'dropData' | data dropped from BEP44 storage | 'target' (hex string)
-
-### shim.js interface with Webtorrent
-This program is a shim between mdht.js and [webtorrent](https://github.com/webtorrent/webtorrent)
-as a replacement for [bittorrent-dht](https://github.com/webtorrent/bittorrent-dht), which is problematic.
-[webtorrent/index.js](https://github.com/webtorrent/webtorrent/blob/master/index.js) needs to be modified locally
-in `node_modules/webtorrent` so that it requires `mdht/shim` rather than `bittorrent-dht/client`. Then, invoke webtorrent like so:
-```
-const WebTorrent = require('webtorrent')
-// must modify webtorrent to require mdht/shim instead of bittorrent-dht/client
-
-const client = new WebTorrent({ torrentPort: port, dhtPort: port, dht: { nodeId: id, bootstrap: bootLocs, seed: seed } })
-// `port` is a port number and `id`, `bootLocs` and `seed` are buffers destined for mdht.js (see dhtInit options above).
-```
-
-Then use (see [torr.js](https://github.com/metamystical/torr) for an example):
-```
-client.dht.once('ready', () => { }) // bootstrap complete, ready for new torrents
-client.dht.on('nodes', (nodes) => { ... }) // periodic report of DHT routing table node locations for saving
-client.dht.nodeId // actual nodeId used
-client.dht.put(v, mutableSalt, resetTarget, callback) // see dht.putData above for first callback syntax
-client.dht.get(target, mutableSalt, callback)  // see dht.getData above for first callback syntax
-```

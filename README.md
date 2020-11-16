@@ -10,20 +10,20 @@ $ npm i mdht
 $ echo "require('mdht/server')" > server.js
 $ node server.js
 ```
-server.js will connect to the DHT via default UDP port 6881 (which should be forwarded),
-by bootstraping from router.bittorrent.com:6881, and then begin to respond to requests from
+server.js will connect to the global mainline DHT via default UDP port 6881 (which should be forwarded),
+by bootstraping from router.bittorrent.com:6881, and then will begin to respond to requests from
 other nodes, using a random node id. Configuration information and incoming requests are
-displayed on the console. The id and routing table are periodically saved to disk for future
-restarts.
+displayed on the console. The id, routing table and cryptographic seed are periodically
+saved to disk for future restarts.
 
-server.js interfaces between mdht/mdht.js (which in turn interfaces with the DHT network), the user
+server.js interfaces between mdht.js (which in turn interfaces with the DHT network), the user
 (via the command line) and the disk (to preserve its state between sessions). It also accepts
-commands to issue outgoing requests to other nodes via HTTP on the same port.
+commands from clients to issue outgoing requests to other DHT nodes via HTTP PUTs on the same port.
 
-mdht/client.js is an interface to server.js via HTTP for inclusion in a client app.
-Alternatively, requests to a running instance of server.js can be made from a browser.
-Navigating to http://localhost:6881 loads a web page with a simple UI for getting and
-putting BEP44 data.
+Navigating to http://localhost:6881 (default port) in a browser loads a web page from server.js via HTTP GET,
+containing a simple UI for getting and putting BEP44 data and for announcing IP addresses.
+Alternatively, clientLib.js is available to include in custom clients running in a browser
+or running under Node.js.
 
 ### Terminology
 

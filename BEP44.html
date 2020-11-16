@@ -2,64 +2,49 @@
 <html>
 <head>
   <title>MDHT BEP44 client</title>
+  <style>
+    table, td, th { text-align: left; }
+  </style>
+  <script src="clientLib.js"></script>
   <script>
+  // url = 'http://localhost:6881' // for development only to avoid restarting server; default from clientLib.js = ''
+
   function setText (id, text) { document.getElementById(id).textContent = text }
   function setVal (id, val) { document.getElementById(id).value = val }
   function getVal (id) { return document.getElementById(id).value.trim() }
   function getChecked (id) { return document.getElementById(id).checked }
+  function copyText (id) { document.getElementById(id).select(); document.execCommand('copy') }
   function report (obj) { return Object.entries(obj).map(([k, v]) => { return k + ': ' + v }).join(', ') }
-  function hexToString(hex) {
-    let str = ''
-    for (let i = 0; i < hex.length; i += 2) { str += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16)) }
-    return str
-  }
-  function checkHex(hex) {
-    if (/[^0-9a-fA-F]/.test(hex) || hex.length != 40) { alert('Enter 40 hex'); return '' }
-    return hex
-  }
-  function hexToBuff(hex) {
-    const a = []
-    for (let i = 0; i < 40; i += 2) a.push(parseInt(hex.slice(i, i + 2), 16))
-    return { type: 'Buffer', data: a }
-  }
   function mutableSalt () {
     const mutable = getChecked('mutable')
     const salt = getVal('salt')
     if (mutable && salt !== '') return salt
     return mutable
   }
-  function walk (obj) { // recursively walk through object, converting { type: 'Buffer', data: array of integers } to hex string
-    for (const k in obj) {
-      if (obj.hasOwnProperty(k)) {
-        const v = obj[k]
-        if (v && v.type === 'Buffer' && Array.isArray(v.data)) {
-          obj[k] = v.data.map((i) => { let hex = i.toString(16); hex.length === 2 || (hex = '0' + hex); return hex }).join('')
-        } else if (!Array.isArray(obj) && typeof obj !== 'string') walk(obj[k])
-      }
-    }
-  }
-  function query (req, done) {
-    fetch('', { method: 'POST', body: JSON.stringify(req), headers: { 'Content-Type': 'application/json' } })
-    .then((res) => { if (!res.ok) throw 'Network error'; res.json().then((res) => { walk(res); done(res) }) })
-    .catch ((err) => { alert('Network error') })
-  }
   function put () {
+    setVal('target', ''); setText('gets', '')
     const req = { method: 'putData', args: {} }
     const v = getVal('v')
     if (v === '') return
     req.args.v = v; req.args.mutableSalt = mutableSalt()
+    setText('puts', 'Storing...')
     query(req, (res) => {
+      if (!res) { setText('puts', 'Network error') }
       res.target && setVal('target', res.target)
-      delete res.target; delete res.v; delete res.k; delete res.sig; delete res.salt
+      delete res.target; delete res.v
+      delete res.k; delete res.sig; delete res.salt
       setText('puts', report(res))
     })
   }
   function get () {
+    setVal('v', ''); setText('puts', '')
     const req = { method: 'getData', args: {} }
     const target = checkHex(getVal('target'))
-    if (target === '') return
+    if (target === '') { setText('gets', '40 hex digits required'); return }
     req.args.target = hexToBuff(target); req.args.mutableSalt = mutableSalt()
+    setText('gets', 'Retrieving...')
     query(req, (res) => {
+      if (!res) { setText('gets', 'Network error') }
       res.v && setVal('v', hexToString(res.v))
       delete res.v
       setText('gets', report(res))
@@ -68,21 +53,46 @@
   </script>
 </head>
 <body>
-  <p>Mutable: <input type="checkbox" id="mutable"></p>
-  <p>Salt: <input type="text" id="salt" size="30"></p>
-  <table>
-    <tr>
-      <th>Data</th><th>Target</th>
-    </tr><tr>
-      <td><textarea id="v" cols="40" rows="5">One for all</textarea></td>
-      <td><input type="text" id="target" maxlength="40" size="40"></td>
-    </tr><tr>
-      <td><button onclick="put()">Put data</button></td>
-      <td><button onclick="get()">Get data</button></td>
-    </tr><tr>
-      <td><span id = "puts"></span></td>
-      <td><span id = "gets"></span></td>
-    </tr>
-  </table>
-</body>
+  <h3>MDHT BEP44 client</h3>
+  <p>Mutable:&nbsp;<input type="checkbox" id="mutable">&nbsp;&nbsp;Salt:&nbsp;<input type="text" id="salt" size="30"></p>
+  <p><table>
+    <tr><th>Data</th></tr>
+    <tr><td><textarea id="v" cols="40" rows="5"></textarea></td></tr>
+    <tr><td><button onclick="put()">Put data</button>&nbsp;<button onclick="copyText('v')">Copy</button></td></tr>
+    <tr><td><small>Status:&nbsp;<span id = "puts"></span></small></td></tr>
+  </table></p>
+  <p><table>
+    <tr><th>Target</th></tr>
+    <tr><td><input type="text" id="target" maxlength="40" size="40"></td></tr>
+    <tr><td><button onclick="get()">Get data</button>&nbsp;<button onclick="copyText('target')">Copy</button></td></tr>
+    <tr><td><small>Status:&nbsp;<span id = "gets"></span></small></td></tr>
+  </table></p>
+  <h4>Mutable and Salt instructions</h4>
+  <ol>
+  <li>Before storing (putting) or retrieving (getting) data, check the <i>Mutable</i> checkbox if mutable storage is to be used
+  instead of immutable storage. If checked, optionally enter <i>Salt</i> text.</li>
+  <li>Immutable data is stored using a key equal to the SHA-1 hash of the data itself.</li>
+  <li>Mutable data is stored using a key equal to the SHA-1 hash of the public key concatenated with the salt, where the secret
+  key was used to sign the data.</li>
+  </ol>
+  <h4>Storing (putting) instructions</h4>
+  <ol>
+  <li>Prepare the <i>Mutable</i> and <i>Salt</i> fields (see above).</li>
+  <li>Type or paste UTF-8 encoded text into the <i>Data</i> text box. Leading and trailing spaces are ignored.</li>
+  <li>Use the <i>Put</i> button to store the data on the DHT.</li>
+  <li>If the operation is successful, the DHT storage key appears in the <i>Target</i> field and
+  the <i>Status</i> field will show information pertinent to the operation after a short delay.</li>
+  </ol>
+  <h4>Retrieving (getting) instructions</h4>
+  <ol>
+  <li>Prepare the <i>Mutable</i> and <i>Salt</i> fields (see above).</li>
+  <li>Enter the DHT storage key of the data you want to retreive in the <i>Target</i> field as 40 hex digits.</li>
+  <li>Use the <i>Get</i> button to retrieve the data from the DHT.</li>
+  <li>If the operation is successful, the retrieved data appears in the <i>Data</i> field and
+  the <i>Status</i> field will show information pertinent to the operation after a short delay.</li>
+  <li>Mutable data is only returned if the data is verified using the public key and signature, which are both stored with it.</li>
+  </ol>
+  <p><a href="http://www.bittorrent.org/beps/bep_0044.html" target="_blank">BEP 44 Document</p>
+  <br>
+  </body>
 </html>

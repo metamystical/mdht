@@ -13,42 +13,34 @@
 // bootPath -- stores 6-byte network location * number of locations to boot from
 //
 // If server-port is 20-bytes or 32-bytes in hex form, then this program functions as a tool to update idPath or seedPath
+//
+// HTTP server uses JSON. If a response includes a Node.js Buffer, the Buffer is converted to
+// an object: { type: 'Buffer', data: array of integers } and must be interpreted as such by clients.
+// When making a request, clients should send objects in this form when a Buffer is required by mdht.
 
 const fs = require('fs')
 const dns = require('dns')
 const url = require('url')
 const http = require('http')
 const eds = require('ed25519-supercop') // for random
-const dhtInit = require('./mdht')
+const dhtInit = require('mdht')
 
 const idLen = 20; const seedLen = 32; const keyLen = 32; const locLen = 6
 const idPath = '.id'; const seedPath = '.seed'; const bootPath = '.boot'
 const defaultBootLoc = 'router.bittorrent.com:6881' // alternate router.utorrent.com:6881
-let dht, pKey; let port = 6881
+const defaultPort = 6881
+let port = defaultPort
+let dht; let pKey;
 
-function report (mess, err) {
-  console.log('%s: %s', timeStr(Date.now()), mess)
-  if (err) process.exit(1)
-}
-function timeStr (time) {
-  const date = (new Date(time)).toJSON()
-  return date.slice(0, 10) + ' ' + date.slice(11, 19) + ' UTC'
-}
-function loadBuff (path) {
-  try {
-    return fs.readFileSync(path)
-  } catch (err) {
-    if (err.code === 'ENOENT') return null // file missing
-    report('error reading from => ' + path, true)
-  }
-}
-function saveBuff (buff, path) {
-  try {
-    fs.writeFileSync(path, buff, { mode: 0o600 })
-    return buff
-  } catch (err) { report('error writing to => ' + path, true) }
-}
-function loadOrRandom (path, len) { return (loadBuff(path) || saveBuff(eds.createSeed().slice(0, len), path)) }
+const html = { }
+const files = ['menu', 'BEP44', 'announce']
+files.forEach((file) => {
+  const filename = file + '.html'
+  const buff = loadBuff(filename)
+  if (!buff) report('error loading html file => ' + filename, true)
+  html[file] = buff.toString()
+})
+report('client html files loaded')
 
 let bootLoc = bootPath
 const opts = {}
@@ -73,7 +65,7 @@ arg = args.shift(); if (arg !== undefined) bootLoc = arg
 opts.id = loadOrRandom(idPath, idLen)
 opts.seed = loadOrRandom(seedPath, seedLen)
 
-if (bootLoc === '.boot') {
+if (bootLoc === bootPath) {
   const bootLocs = loadBuff(bootLoc)
   if (bootLocs) {
     report('booting from => .boot'); go(bootLocs)
@@ -83,6 +75,34 @@ if (bootLoc === '.boot') {
 } else {
   report('booting from => ' + bootLoc); toLoc(bootLoc)
 }
+
+function report (mess, err) {
+  console.log('%s: %s', timeStr(Date.now()), mess)
+  if (err) process.exit(1)
+}
+
+function timeStr (time) {
+  const date = (new Date(time)).toJSON()
+  return date.slice(0, 10) + ' ' + date.slice(11, 19) + ' UTC'
+}
+
+function loadBuff (path) {
+  try {
+    return fs.readFileSync(path)
+  } catch (err) {
+    if (err.code === 'ENOENT') return null // file missing
+    report('error reading from => ' + path, true)
+  }
+}
+
+function saveBuff (buff, path) {
+  try {
+    fs.writeFileSync(path, buff, { mode: 0o600 })
+    return buff
+  } catch (err) { report('error writing to => ' + path, true) }
+}
+
+function loadOrRandom (path, len) { return (loadBuff(path) || saveBuff(eds.createSeed().slice(0, len), path)) }
 
 function toLoc (str) { // converts 'address:port' to 6-byte hex buffer, where address is an IPv4 address or a domain
   function makeLoc (address, port) {
@@ -120,16 +140,18 @@ function update (key, val) {
 }
 
 function server () {
-  const menu = loadBuff('menu.html').toString()
-  const BEP44 = loadBuff('BEP44.html').toString()
-  const announce = ''
   http.createServer((req, res) => {
+    // the next two headers allow clients not served by GET requests to bypass CORS
+    // this eliminates the need to keep restarting this server during client development
+    // comment out the two headers if you want CORS restrictions
+    res.setHeader('Access-Control-Allow-Origin', '*') 
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
     switch (req.method) {
       case 'GET':
         switch (url.parse(req.url).pathname) {
-          case '/': res.end(menu); break
-          case '/BEP44': res.end(BEP44); break
-          case '/announce': res.end(announce); break
+          case '/': res.end(html['menu']); break
+          case '/BEP44': res.end(html['BEP44']); break
+          case '/announce': res.end(html['announce']); break
           default: res.end('Bad URL')
         }
         break
@@ -139,7 +161,7 @@ function server () {
         req.on('end', () => {
           try {
             data = JSON.parse(data)
-            walk(data)
+            toBuff(data)
             doAPI(data, (results) => { res.end(JSON.stringify(results)) })
           } catch (err) {
             res.end('')
@@ -156,13 +178,13 @@ function server () {
   })
 }
 
-function walk (obj) { // recursively walk through object, converting { type: 'Buffer', data: array of integers } to buffer
+function toBuff (obj) { // recursively walk through object, converting { type: 'Buffer', data: array of integers } to buffer
   for (const k in obj) {
     if (obj.hasOwnProperty(k)) {
       const v = obj[k]
       if (v && v.type === 'Buffer' && Array.isArray(v.data)) {
         obj[k] = Buffer.from(v.data.map((i) => { let hex = i.toString(16); hex.length === 2 || (hex = '0' + hex); return hex }).join(''), 'hex')
-      } else if (!Array.isArray(obj) && typeof obj !== 'string' && !Buffer.isBuffer(obj)) walk(obj[k])
+      } else if (!Array.isArray(obj) && typeof obj !== 'string' && !Buffer.isBuffer(obj)) toBuff(obj[k])
     }
   }
 }

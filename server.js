@@ -23,7 +23,7 @@ const dns = require('dns')
 const url = require('url')
 const http = require('http')
 const eds = require('ed25519-supercop') // for random
-const dhtInit = require('mdht')
+const dhtInit = require('./mdht')
 
 const idLen = 20; const seedLen = 32; const keyLen = 32; const locLen = 6
 const idPath = '.id'; const seedPath = '.seed'; const bootPath = '.boot'

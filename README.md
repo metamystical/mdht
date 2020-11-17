@@ -50,7 +50,7 @@ options.bootLocs | remote node *locations* to contact at startup (buffer of conc
 
 #### dhtInit returns an object with the following methods:
 ```
-dht.announcePeer(ih, port, implied_port, ({ numVisited: ..., numStored: ... }) => {}, onV)
+dht.announcePeer(ih, port, impliedPort, ({ numVisited: ..., numStored: ... }) => {}, onV)
 dht.getPeers(ih, ({ numVisited: ..., numFound: ..., peers: ... }) => {}, onV)
 dht.putData(v, mutableSalt, resetTarget, ({ numVisited: ..., numStored: ..., target: ..., v: ..., salt: ..., seq: ..., k: ..., sig: ... }) => {}, onV)
 dht.getData(target, mutableSalt, ({ numVisited: ..., numFound: ..., v: ..., seq: ... }) => {}, onV)
@@ -85,6 +85,8 @@ computed with *makeMutableTarget* (if k and mutableSalt are known) or *makeImmut
 Argument | Description
 ---------|------------
 ih | infohash, *id* of a torrent (buffer)
+port | UDP port of local node (integer)
+impliedPort | if 1, ignore port and use externally visible port (0 or 1, optional)
 target | *id* of BEP44 data (buffer)
 v | BEP44 data to be stored in the DHT (object, buffer, string or number)
 mutableSalt | if immutable BEP44 data then *false* or *''*; if mutable data then *true* if no salt, or *salt* (non-empty string or buffer -- string will be converted to buffer, buffer will be truncated to 64 bytes)

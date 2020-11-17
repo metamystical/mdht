@@ -33,7 +33,7 @@ let port = defaultPort
 let dht; let pKey;
 
 const htmljs = { }
-const files = ['menu.html', 'BEP44.html', 'announce.html', 'clientLib.js']
+const files = ['menu.html', 'BEP44.html', 'announce.html', '404.html', 'clientLib.js']
 files.forEach((file) => {
   const buff = loadBuff(file)
   if (!buff) report('error loading file => ' + file, true)
@@ -149,10 +149,10 @@ function server () {
       case 'GET':
         switch (url.parse(req.url).pathname) {
           case '/': res.end(htmljs['menu.html']); break
-          case '/BEP44': res.end(htmljs['BEP44.html']); break
-          case '/announce': res.end(htmljs['announce.html']); break
-          case '/clientLib': res.end(htmljs['clientLib.js']); break
-          default: res.end('Bad URL')
+          case '/BEP44.html': res.end(htmljs['BEP44.html']); break
+          case '/announce.html': res.end(htmljs['announce.html']); break
+          case '/clientLib.js': res.end(htmljs['clientLib.js']); break
+          default: res.end(htmljs['404.html'])
         }
         break
       case 'POST':

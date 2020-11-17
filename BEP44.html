@@ -5,9 +5,9 @@
   <style>
     table, td, th { text-align: left; }
   </style>
-  <script src="clientLib.js"></script>
+  <script src="clientLib"></script>
   <script>
-  // url = 'http://localhost:6881' // for development only to avoid restarting server; default from clientLib.js = ''
+  // cl.url = 'http://localhost:6881' // for development only to avoid restarting server; default from clientLib.js = ''
 
   function setText (id, text) { document.getElementById(id).textContent = text }
   function setVal (id, val) { document.getElementById(id).value = val }
@@ -28,8 +28,8 @@
     if (v === '') return
     req.args.v = v; req.args.mutableSalt = mutableSalt()
     setText('puts', 'Storing...')
-    query(req, (res) => {
-      if (!res) { setText('puts', 'Network error') }
+    cl.request(req, (res) => {
+      if (!res) { setText('puts', 'Network error'); return }
       res.target && setVal('target', res.target)
       delete res.target; delete res.v
       delete res.k; delete res.sig; delete res.salt
@@ -39,13 +39,13 @@
   function get () {
     setVal('v', ''); setText('puts', '')
     const req = { method: 'getData', args: {} }
-    const target = checkHex(getVal('target'))
+    const target = cl.checkHex(getVal('target'))
     if (target === '') { setText('gets', '40 hex digits required'); return }
-    req.args.target = hexToBuff(target); req.args.mutableSalt = mutableSalt()
+    req.args.target = cl.hexToBuff(target); req.args.mutableSalt = mutableSalt()
     setText('gets', 'Retrieving...')
-    query(req, (res) => {
-      if (!res) { setText('gets', 'Network error') }
-      res.v && setVal('v', hexToString(res.v))
+    cl.request(req, (res) => {
+      if (!res) { setText('gets', 'Network error'); return }
+      res.v && setVal('v', cl.hexToString(res.v))
       delete res.v
       setText('gets', report(res))
     })

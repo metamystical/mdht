@@ -160,8 +160,7 @@ function server () {
         req.on('data', (chunk) => { data = Buffer.concat([data, chunk]) })
         req.on('end', () => {
           try {
-            data = JSON.parse(data)
-            toBuff(data)
+            data = toBuff(JSON.parse(data))
             doAPI(data, (results) => { res.end(JSON.stringify(results)) })
           } catch (err) {
             res.end('')
@@ -179,13 +178,17 @@ function server () {
 }
 
 function toBuff (obj) { // recursively walk through object, converting { type: 'Buffer', data: array of integers } to buffer
-  for (const k in obj) {
-    if (obj.hasOwnProperty(k)) {
-      const v = obj[k]
-      if (v && v.type === 'Buffer' && Array.isArray(v.data)) {
-        obj[k] = Buffer.from(v.data.map((i) => { let hex = i.toString(16); hex.length === 2 || (hex = '0' + hex); return hex }).join(''), 'hex')
-      } else if (!Array.isArray(obj) && typeof obj !== 'string' && !Buffer.isBuffer(obj)) toBuff(obj[k])
+  if (obj && obj.type === 'Buffer' && Array.isArray(obj.data)) {
+    return Buffer.from(obj.data.map((i) => { let hex = i.toString(16); hex.length === 2 || (hex = '0' + hex); return hex }).join(''), 'hex')
+  }
+  else {
+    for (const k in obj) {
+      if (obj.hasOwnProperty(k)) {
+        const v = obj[k]
+        if (!Array.isArray(v) && typeof v !== 'string') obj[k] = toBuff(v)
+      }
     }
+    return obj
   }
 }
 

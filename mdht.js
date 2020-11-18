@@ -14,8 +14,8 @@ const crypto = require('crypto')
 const dgram = require('dgram')
 const eds = require('ed25519-supercop')
 const Table = require('./table')
-const encode = require('./encode')
-const decode = require('./decode')
+const encode = require('util/encode')
+const decode = require('util/decode')
 
 // constants and utilities
 const ut = {

@@ -5,7 +5,7 @@
 //  server-port -- valid decimal port number (optional, default 6881)
 //
 // clientTest.js sends test requests to the DHT server and displays responses.
-// This file can be used as a guide for writing customized clients.
+// This file can be used as a guide to writing customized clients.
 
 const cl = require('./clientLib')
 
@@ -23,7 +23,7 @@ const v = { m: 'JEB', f: 'MLK' }
 const salt = 'salty'
 
 // Uncomment tests you wish to run in the "tests" array below. Uncommented tests
-// will run consecutively. Tests are arranged in groups of two or three.
+// will run consecutively. Tests are arranged in groups meant to be bundled..
 //
 // The target returned by makeImmutableTarget or makeMutableTarget is used
 // in the next test if "target" or "resetTarget" is initially set to 'empty'.
@@ -40,15 +40,14 @@ const tests = [
 //  { request: { method: 'getData', args: { target: 'empty', mutableSalt: false } }, comment: 'immutable' },
 
 //  { request: { method: 'putData', args: { v: v, mutableSalt: true, resetTarget: null } }, comment: 'mutable, no salt' },
-//  { request: { method: 'makeMutableTarget', args: { k: null, mutableSalt: true } }, comment: 'k === null: use local public key' },
+//  { request: { method: 'makeMutableTarget', args: { k: null, mutableSalt: true } }, comment: 'k = null: use local public key' },
 //  { request: { method: 'getData', args: { target: 'empty', mutableSalt: true } }, comment: 'mutable, no salt' },
 
 //  { request: { method: 'putData', args: { v: v, mutableSalt: salt, resetTarget: null } }, comment: 'mutable, salt' },
-//  { request: { method: 'makeMutableTarget', args: { k: null, mutableSalt: salt } }, comment: 'k === null: use local public key' },
+//  { request: { method: 'makeMutableTarget', args: { k: null, mutableSalt: salt } }, comment: 'k = null: use local public key' },
 //  { request: { method: 'getData', args: { target: 'empty', mutableSalt: salt } }, comment: 'mutable' },
-
-//  { request: { method: 'makeMutableTarget', args: { k: null, mutableSalt: salt } }, comment: 'k === null: use local public key' },
-//  { request: { method: 'putData', args: { v: v, mutableSalt: salt, resetTarget: 'empty' } }, comment: 'mutable, reset target' },
+//  { request: { method: 'makeMutableTarget', args: { k: null, mutableSalt: salt } }, comment: 'k = null: use local public key' },
+//  { request: { method: 'putData', args: { v: v, mutableSalt: salt, resetTarget: 'empty' } }, comment: 'mutable, salt, reset target' },
 ]
 
 if (tests.length) tester(tests.shift())
@@ -58,12 +57,13 @@ function tester (test) {
   console.log('Sending:', test.request)
   cl.request(test.request, (data) => {
     if (!data) return
+    if (data.peers) { data.peers.forEach((peer, inx, array) => { array[inx] = convertToIPPort(peer) }) }
     console.log('Response:', data)
-    if (data.peers) { data.peers.forEach((peer) => { console.log(convertToIPPort(peer)) }) }
     const nextObj = tests.shift()
     if (!nextObj) return
-    if (nextObj.request.method === 'putData' && nextObj.request.args.resetTarget === 'empty') nextObj.request.args.resetTarget = cl.hexToBuff(data)
-    if (nextObj.request.method === 'getData' && nextObj.request.args.target === 'empty') nextObj.request.args.target = cl.hexToBuff(data)
+    const args = nextObj.request.args
+    if (args.resetTarget === 'empty') args.resetTarget = cl.hexToBuff(data)
+    if (args.target === 'empty') args.target = cl.hexToBuff(data)
     setImmediate(tester, nextObj)
   })
 }

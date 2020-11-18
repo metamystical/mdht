@@ -7,7 +7,9 @@
   </style>
   <script src="clientLib.js"></script>
   <script>
-  // cl.url = 'http://localhost:6881' // for development only to avoid restarting server; default from clientLib.js = ''
+  // To open this page directly in a browser rather than GETing from
+  // the server, uncomment the next line which overrides default cl.url = ''.
+  // cl.url = 'http://localhost:6881' // replace 6881 with the actual server port
 
   function setText (id, text) { document.getElementById(id).textContent = text }
   function setVal (id, val) { document.getElementById(id).value = val }

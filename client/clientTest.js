@@ -23,7 +23,7 @@ const v = { m: 'JEB', f: 'MLK' }
 const salt = 'salty'
 
 // Uncomment tests you wish to run in the "tests" array below. Uncommented tests
-// will run consecutively. Tests are arranged in groups meant to be bundled..
+// will run consecutively. Tests are arranged in groups meant to be bundled together.
 //
 // The target returned by makeImmutableTarget or makeMutableTarget is used
 // in the next test if "target" or "resetTarget" is initially set to 'empty'.

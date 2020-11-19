@@ -29,10 +29,10 @@ const cl = {
     fetch(cl.url, { method: 'POST', body: JSON.stringify(req), headers: { 'Content-Type': 'application/json' } })
     .then((res) => { if (!res.ok) throw ''; return res.json() })
     .then((res) => { next(cl.buffToHex(res)) })
-    .catch ((err) => { next(null) })
+    .catch ((err) => { console.log(err); next(null) })
   },
 
-  checkHex: (hex) => {
+  checkHex: (hex) => { // check for 40 hex digits
     if (/[^0-9a-fA-F]/.test(hex) || hex.length != 40) return ''
     return hex
   },
@@ -48,19 +48,14 @@ const cl = {
       return obj.data.map((i) => { let hex = i.toString(16); hex.length === 2 || (hex = '0' + hex); return hex }).join('')
     }
     else {
-      for (const k in obj) {
-        if (obj.hasOwnProperty(k)) {
-          const v = obj[k]
-          if (!Array.isArray(v) && typeof v !== 'string') obj[k] = cl.buffToHex(v)
-        }
-      }
+      Object.keys(obj).forEach((k) => { if( typeof obj[k] !== 'string') obj[k] = cl.buffToHex(obj[k]) })
       return obj
     }
   },
 
   hexToBuff: (hex) => { // convert hex string to { type: 'Buffer', data: array of integers }
     const a = []
-    for (let i = 0; i < 40; i += 2) a.push(parseInt(hex.slice(i, i + 2), 16))
+    for (let i = 0; i < hex.length; i += 2) a.push(parseInt(hex.slice(i, i + 2), 16))
     return { type: 'Buffer', data: a }
   }
 }
@@ -85,7 +80,7 @@ if (isNodeJS) cl.request = (req, next) => { // node.js version
         next(cl.buffToHex(data))
       })
     }
-  ).end(post).on('error', (err) => { next(null) })
+  ).end(post).on('error', (err) => { console.log(err); next(null) })
 }
 
 if (isNodeJS) module.exports = cl

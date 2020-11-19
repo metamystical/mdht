@@ -178,16 +178,12 @@ function server () {
 }
 
 function toBuff (obj) { // recursively walk through object, converting { type: 'Buffer', data: array of integers } to buffer
+console.log(obj)
   if (obj && obj.type === 'Buffer' && Array.isArray(obj.data)) {
     return Buffer.from(obj.data.map((i) => { let hex = i.toString(16); hex.length === 2 || (hex = '0' + hex); return hex }).join(''), 'hex')
   }
   else {
-    for (const k in obj) {
-      if (obj.hasOwnProperty(k)) {
-        const v = obj[k]
-        if (!Array.isArray(v) && typeof v !== 'string') obj[k] = toBuff(v)
-      }
-    }
+    Object.keys(obj).forEach((k) => { if (typeof obj[k] !== 'string') obj[k] = toBuff(obj[k]) })
     return obj
   }
 }

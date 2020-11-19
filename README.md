@@ -21,7 +21,7 @@ server.js interfaces between mdht.js (which in turn interfaces with the DHT netw
 commands from clients to issue outgoing requests to other DHT nodes via HTTP PUTs on the same port.
 
 Navigating to http://localhost:6881 (default port) in a browser loads a web page from server.js via HTTP GET,
-containing a simple UI for getting and putting BEP44 data and for announcing IP addresses (currently under development).
+containing a simple UI for getting and putting BEP44 data and for announcing and getting peers.
 Alternatively, client/clientLib.js is available to include in custom clients running in a browser
 or running under Node.js. See client/clientTest.js for examples.
 

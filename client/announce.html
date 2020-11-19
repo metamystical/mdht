@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+<head>
+  <title>MDHT peer client</title>
+  <style>
+    table, td, th { text-align: left; }
+  </style>
+  <script src="clientLib.js"></script>
+  <script>
+  // To open this page directly in a browser rather than GETing from
+  // the server, uncomment the next line which overrides default cl.url = ''.
+  // cl.url = 'http://localhost:6881' // replace 6881 with the actual server port
+
+  function setText (id, text) { document.getElementById(id).innerHTML = text }
+  function setVal (id, val) { document.getElementById(id).value = val }
+  function getVal (id) { return document.getElementById(id).value.trim() }
+  function getChecked (id) { return document.getElementById(id).checked }
+  function copyText (id) { document.getElementById(id).select(); document.execCommand('copy') }
+  function convertHexToIPPort (loc) {
+    loc = cl.hexToBuff(loc).data
+    let str = ''
+    for (let i = 0; i < 4; i++) str += loc[i] + (i < 3 ? '.' : '')
+    return str + ':' + ((loc[4] << 8) + loc[5])
+  }
+  function report (obj) { return Object.entries(obj).map(([k, v]) => { return k + ': ' + v }).join(', ') }
+  function infohash () {
+    setText('is', '')
+    const ih = cl.checkHex(getVal('ih'))
+    if (ih === '') {
+      setText('is', 'infohash must be a 40 hex digits string')
+      setVal('ih', '')
+      return
+    }
+  }
+  function announce () {
+    const req = { method: 'announcePeer', args: { port: 0, impliedPort: 1 } }
+    const ih = cl.checkHex(getVal('ih'))
+    if (ih === '') { setText('as', 'enter an infohash'); return }
+    req.args.ih = cl.hexToBuff(ih)
+    setText('as', 'Announcing...')
+    cl.request(req, (res) => {
+      if (!res) { setText('as', 'Network error'); return }
+      setText('as', report(res))
+    })
+  }
+  function getPeers () {
+    const req = { method: 'getPeers', args: {} }
+    const ih = cl.checkHex(getVal('ih'))
+    if (ih === '') { setText('gs', 'enter an infohash'); return }
+    req.args.ih = cl.hexToBuff(ih)
+    setText('gs', 'Retrieving...')
+    cl.request(req, (res) => {
+      if (!res) { setText('gs', 'Network error'); return }
+      let peers = ''
+      if (res.peers) {
+        res.peers.forEach((peer) => { peers += '<br>' + convertHexToIPPort(peer) })
+        delete res.peers
+      }
+      setText('gs', report(res) + '<br>' + peers)
+    })
+  }
+  </script>
+</head>
+<body>
+  <h3>MDHT peer client</h3>
+  <p><table>
+    <tr><th>Infohash</th></tr>
+    <tr><td><input type="text" id="ih" size="50" oninput="infohash()">&nbsp;<button onclick="copyText('ih')">Copy</button></td></tr>
+    <tr><td><small>Status:&nbsp;<span id = "is"></span></small></td></tr>
+  </table></p>
+  <p><table>
+    <tr><th>Announce</th></tr>
+    <tr><td><button onclick="announce()">Announce this peer</button></td></tr>
+    <tr><td><small>Status:&nbsp;<span id = "as"></span></small></td></tr>
+  </table></p>
+  <p><table>
+    <tr><th>Get peers</th></tr>
+    <tr><td><button onclick="getPeers()">Get other peers</button></td></tr>
+    <tr><td><small>Status:&nbsp;<span id = "gs"></span></small></td></tr>
+  </table></p>
+  <h4>Infohash instructions</h4>
+  <ol>
+  <li>Before announcing or retrieving (getting) peers, paste a 40 hex digit string into the <i>Infohash</i> field.
+  </li>
+  </ol>
+  <h4>Announcing instructions</h4>
+  <ol>
+  <li>Prepare the <i>Infohash</i> field (see above).</li>
+  <li>Use the <i>Announce</i> button to announce to the DHT that this peer is associated with the infohash.</li>
+  <li>If the operation is successful, the <i>Status</i> field will show information pertinent to the operation after a short delay.</li>
+  </ol>
+  <h4>Retrieving (getting) instructions</h4>
+  <ol>
+  <li>Prepare the <i>Infohash</i> field (see above).</li>
+  <li>Use the <i>Get</i> button to retrieve other peers associated with the infohash from the DHT.</li>
+  <li>If the operation is successful, the <i>Status</i> field will show information pertinent to the operation after a short delay.</li>
+  </ol>
+  <p><a href="http://www.bittorrent.org/beps/bep_0044.html" target="_blank">BEP 44 Document</p>
+  <br>
+  </body>
+</html>

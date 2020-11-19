@@ -35,7 +35,8 @@ let dht; let pKey;
 const htmljs = { }
 const files = ['menu.html', 'BEP44.html', 'announce.html', '404.html', 'clientLib.js']
 files.forEach((file) => {
-  const buff = loadBuff('client/' + file)
+  const path = require.resolve('./client/' + file)
+  const buff = loadBuff(path)
   if (!buff) report('error loading file => ' + file, true)
   htmljs[file] = buff.toString()
 })

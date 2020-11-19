@@ -178,12 +178,11 @@ function server () {
 }
 
 function toBuff (obj) { // recursively walk through object, converting { type: 'Buffer', data: array of integers } to buffer
-console.log(obj)
   if (obj && obj.type === 'Buffer' && Array.isArray(obj.data)) {
     return Buffer.from(obj.data.map((i) => { let hex = i.toString(16); hex.length === 2 || (hex = '0' + hex); return hex }).join(''), 'hex')
   }
   else {
-    Object.keys(obj).forEach((k) => { if (typeof obj[k] !== 'string') obj[k] = toBuff(obj[k]) })
+    for (const [k, v] of Object.entries(obj)) { if (v !== null && v !== undefined && typeof v !== 'string') obj[k] = toBuff(v) }
     return obj
   }
 }
@@ -204,7 +203,7 @@ function doAPI (data, done) {
     report('not calling => ' + method); done({})
   } else {
     report('calling => ' + method)
-    if (method === 'announcePeer') dht[method](target, args.port, args.impliedPort, done)
+    if (method === 'announcePeer') dht[method](target, args.impliedPort, done)
     else if (method === 'getPeers') dht[method](target, done)
     else if (method === 'putData') dht[method](args.v, args.mutableSalt, target, done)
     else if (method === 'getData') dht[method](target, args.mutableSalt, done)

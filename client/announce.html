@@ -33,7 +33,7 @@
     }
   }
   function announce () {
-    const req = { method: 'announcePeer', args: { port: 0, impliedPort: 1 } }
+    const req = { method: 'announcePeer', args: { impliedPort: 1 } }
     const ih = cl.checkHex(getVal('ih'))
     if (ih === '') { setText('as', 'enter an infohash'); return }
     req.args.ih = cl.hexToBuff(ih)
@@ -69,13 +69,13 @@
     <tr><td><small>Status:&nbsp;<span id = "is"></span></small></td></tr>
   </table></p>
   <p><table>
-    <tr><th>Announce</th></tr>
+    <tr><th>Announce peer</th></tr>
     <tr><td><button onclick="announce()">Announce this peer</button></td></tr>
     <tr><td><small>Status:&nbsp;<span id = "as"></span></small></td></tr>
   </table></p>
   <p><table>
     <tr><th>Get peers</th></tr>
-    <tr><td><button onclick="getPeers()">Get other peers</button></td></tr>
+    <tr><td><button onclick="getPeers()">Get peers</button></td></tr>
     <tr><td><small>Status:&nbsp;<span id = "gs"></span></small></td></tr>
   </table></p>
   <h4>Infohash instructions</h4>

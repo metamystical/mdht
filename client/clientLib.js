@@ -48,7 +48,7 @@ const cl = {
       return obj.data.map((i) => { let hex = i.toString(16); hex.length === 2 || (hex = '0' + hex); return hex }).join('')
     }
     else {
-      Object.keys(obj).forEach((k) => { if( typeof obj[k] !== 'string') obj[k] = cl.buffToHex(obj[k]) })
+      for (const [k, v] of Object.entries(obj)) { if (v !== null && v !== undefined && typeof v !== 'string') obj[k] = cl.buffToHex(v) }
       return obj
     }
   },

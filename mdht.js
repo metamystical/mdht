@@ -196,7 +196,7 @@ const my = {
 const pi = {
   getPeers: (ih, done, onV) => { oq.act('get_peers', { info_hash: ih }, onV, null, null, done) },
 
-  announcePeer: (ih, port, impliedPort, done, onV) => { oq.act('get_peers', { info_hash: ih }, onV, 'announce_peer', { info_hash: ih, port: port, implied_port: impliedPort }, done) },
+  announcePeer: (ih, impliedPort, done, onV) => { oq.act('get_peers', { info_hash: ih }, onV, 'announce_peer', { info_hash: ih, port: sr.port, implied_port: (impliedPort ? 1 : 0) }, done) },
 
   getData: (target, mutableSalt, done, onV) => { oq.act('get', { target: target, mutableSalt: mutableSalt }, onV, null, null, done) },
 

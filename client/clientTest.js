@@ -32,7 +32,7 @@ const salt = 'salty'
 // because the target is returned by the previous putData test.
 
 const tests = [
-  { request: { method: 'announcePeer', args: { ih: ih, port: port, impliedPort: 1 } }, comment: '' },
+  { request: { method: 'announcePeer', args: { ih: ih, impliedPort: 1 } }, comment: '' },
   { request: { method: 'getPeers', args: { ih: ih } }, comment: '' },
 
 //  { request: { method: 'putData', args: { v: v, mutableSalt: false, resetTarget: null } }, comment: 'immutable' },

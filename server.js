@@ -8,11 +8,10 @@
 //
 // Configuration files (in the current directory):
 //
-// idPath -- stores 20-byte table id; if absent, a random id is created and stored
 // seedPath -- stores 32-byte seed for keyPair generation; if absent, a random seed is created and stored
 // bootPath -- stores 6-byte network location * number of locations to boot from
 //
-// If server-port is 20-bytes or 32-bytes in hex form, then this program functions as a tool to update idPath or seedPath
+// If server-port is 32-bytes in hex form, then this program functions as a tool to update idPath or seedPath
 //
 // HTTP server uses JSON. If a response includes a Node.js Buffer, the Buffer is converted to
 // an object: { type: 'Buffer', data: array of integers } and must be interpreted as such by clients.
@@ -22,11 +21,12 @@ const fs = require('fs')
 const dns = require('dns')
 const url = require('url')
 const http = require('http')
+const https = require('https')
 const eds = require('ed25519-supercop') // for random
 const dhtInit = require('./mdht')
 
 const idLen = 20; const seedLen = 32; const keyLen = 32; const locLen = 6
-const idPath = '.id'; const seedPath = '.seed'; const bootPath = '.boot'
+const seedPath = '.seed'; const bootPath = '.boot'
 const defaultBootLoc = 'router.bittorrent.com:6881' // alternate router.utorrent.com:6881
 const defaultPort = 6881
 let port = defaultPort
@@ -54,7 +54,6 @@ arg = args.shift(); if (arg !== undefined) {
     saveBuff(Buffer.from(hex, 'hex'), path)
     process.exit(1)
   }
-  arg.length === idLen * 2 && save(arg, idPath)
   arg.length === seedLen * 2 && save(arg, seedPath)
   port = parseInt(arg, 10)
   ;(port > 0 && port < 65536) || report('invalid port => ' + port, true)
@@ -62,18 +61,35 @@ arg = args.shift(); if (arg !== undefined) {
 }
 arg = args.shift(); if (arg !== undefined) bootLoc = arg
 
-opts.id = loadOrRandom(idPath, idLen)
 opts.seed = loadOrRandom(seedPath, seedLen)
 
-if (bootLoc === bootPath) {
-  const bootLocs = loadBuff(bootLoc)
-  if (bootLocs) {
-    report('booting from => .boot'); go(bootLocs)
-  } else {
-    report('booting from => ' + defaultBootLoc); toLoc(defaultBootLoc)
+https.get('https://api.myip.com', (res) => {
+  let data = Buffer.alloc(0)
+  res.on('data', (chunk) => { data = Buffer.concat([ data, chunk] ) })
+  res.on('end', () => { next(JSON.parse(data).ip) })
+}).on('error', (err) => { next() })
+
+function next (ip) {
+  const rep = 'external ip request => '
+  if (ip) {
+    opts.ip = ip
+    report(rep + ip) // compute BEP42 node id in mdht.js
   }
-} else {
-  report('booting from => ' + bootLoc); toLoc(bootLoc)
+  else report(rep + 'failed') // use default random node id
+  setImmediate(boot)
+}
+
+function boot () {
+  if (bootLoc === bootPath) {
+    const bootLocs = loadBuff(bootLoc)
+    if (bootLocs) {
+      report('booting from => .boot'); go(bootLocs)
+    } else {
+      report('booting from => ' + defaultBootLoc); toLoc(defaultBootLoc)
+    }
+  } else {
+    report('booting from => ' + bootLoc); toLoc(bootLoc)
+  }
 }
 
 function report (mess, err) {
@@ -200,15 +216,16 @@ function doAPI (data, done) {
     (target && (!Buffer.isBuffer(target) || target.length !== idLen)) ||
     ((method === 'announcePeer' || method === 'getPeers' || method === 'getData') && !target) ||
     ((method === 'putData' || method === 'makeImmutableTarget') && !args.hasOwnProperty('v'))
-  ) {
-    report('not calling => ' + method); done({})
-  } else {
-    report('calling => ' + method)
-    if (method === 'announcePeer') dht[method](target, args.impliedPort, done)
-    else if (method === 'getPeers') dht[method](target, done)
-    else if (method === 'putData') dht[method](args.v, args.mutableSalt, target, done)
-    else if (method === 'getData') dht[method](target, args.mutableSalt, done)
-    else if (method === 'makeMutableTarget') done(dht[method](k, args.mutableSalt))
-    else if (method === 'makeImmutableTarget') done(dht[method](args.v))
+  ) done({})
+  else {
+    report('outgoing => ' + method)
+    switch (method) {
+      case 'announcePeer': dht[method](target, args.impliedPort, done); break
+      case 'getPeers': dht[method](target, done); break
+      case 'putData': dht[method](args.v, args.mutableSalt, target, done); break
+      case 'getData': dht[method](target, args.mutableSalt, done); break
+      case 'makeMutableTarget': done(dht[method](k, args.mutableSalt)); break
+      case 'makeImmutableTarget': done(dht[method](args.v)); break
+    }
   }
 }

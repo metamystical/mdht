@@ -13,6 +13,7 @@
 const crypto = require('crypto')
 const dgram = require('dgram')
 const eds = require('ed25519-supercop')
+const { crc32c } = require('polycrc')
 const Table = require('./util/table')
 const encode = require('./util/encode')
 const decode = require('./util/decode')
@@ -95,12 +96,11 @@ const go = {
   init: (opts, update) => {
     typeof update === 'function' && (go.update = update)
     Object.entries(opts || {}).forEach(([key, val]) => {
-      if (key !== 'port' && !Buffer.isBuffer(val)) return
       switch (key) {
         case 'port': val > 0 && val < 65536 && (sr.port = ~~val); break
-        case 'id': val.length === ut.idLen && (my.id = val); break
-        case 'seed': val.length === ut.keyLen && (my.keyPair = eds.createKeyPair(val)); break
-        case 'bootLocs': val.length % ut.locLen || (my.bootLocs = ut.splitBuff(val, ut.locLen)); break
+        case 'ip': typeof ip === 'string' && my.ipToId(ip); break
+        case 'seed': Buffer.isBuffer(val) && val.length === ut.keyLen && (my.keyPair = eds.createKeyPair(val)); break
+        case 'bootLocs': Buffer.isBuffer(val) && (val.length % ut.locLen || (my.bootLocs = ut.splitBuff(val, ut.locLen))); break
       }
     })
     go.doUpdate('id', my.id)
@@ -175,6 +175,28 @@ const my = {
   id: ut.random(ut.idLen),
   keyPair: eds.createKeyPair(ut.random(ut.keyLen)),
   bootLocs: Buffer.alloc(0),
+
+  ipToId: (addr) => { // BEP42 security extension
+    addr = addr.split('.')
+    if (addr.length === 4) {
+      const mask = [ 0x03, 0x0f, 0x3f, 0xff ]
+      const id = Buffer.alloc(ut.idLen)
+      const ip = Buffer.alloc(4)
+      addr.forEach((dec, i) => { ip[i] = parseInt(dec, 10) & mask[i] })
+      const random = ut.random(22)
+      const rand = random[20]
+
+      ip[0] |= (rand & 0x7) << 5
+      const crc = crc32c(ip)
+
+      id[0] = (crc >> 24) & 0xff
+      id[1] = (crc >> 16) & 0xff
+      id[2] = ((crc >> 8) & 0xf8) | (random[21] & 0x7)
+      for (let i = 3; i < 19; ++i) id[i] = random[i]
+      id[19] = rand
+      my.id = id
+    }
+  },
 
   populate: () => { oq.populate(my.table, my.bootLocs, (numVisited) => { go.doUpdate('ready', numVisited); my.update() }) },
 

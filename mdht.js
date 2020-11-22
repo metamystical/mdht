@@ -82,6 +82,28 @@ const ut = {
     arr.push(es({ seq: seq }))
     arr.push(es({ v: v }))
     return Buffer.concat(arr)
+  },
+  crc: (addr, rand) => {
+    const mask = [ 0x03, 0x0f, 0x3f, 0xff ]
+    const ip = Buffer.alloc(4)
+    addr.split('.').forEach((dec, i) => { ip[i] = parseInt(dec, 10) & mask[i] })
+    ip[0] |= (rand & 0x7) << 5
+    return crc32c(ip)
+  },
+  makeBEP42: (id, crc, rand) => {
+    id[0] = ((crc >> 24) & 0xff)
+    id[1] = ((crc >> 16) & 0xff)
+    id[2] = (((crc >> 8) & 0xf8) | (rand & 0x7))
+  },
+  checkBEP42: (addr, id) => {
+    const rand = id[19]
+    const crc = ut.crc(addr, rand)
+    if (
+      id[0] !== ((crc >> 24) & 0xff) ||
+      id[1] !== ((crc >> 16) & 0xff) ||
+      (id[2] & 0xf8) !== ((crc >> 8) & 0xf8)
+    ) return false
+    return true
   }
 }
 
@@ -98,7 +120,7 @@ const go = {
     Object.entries(opts || {}).forEach(([key, val]) => {
       switch (key) {
         case 'port': val > 0 && val < 65536 && (sr.port = ~~val); break
-        case 'ip': typeof ip === 'string' && my.ipToId(ip); break
+        case 'ip': typeof val === 'string' && val.split('.').length === 4 && my.ipToId(val); break
         case 'seed': Buffer.isBuffer(val) && val.length === ut.keyLen && (my.keyPair = eds.createKeyPair(val)); break
         case 'bootLocs': Buffer.isBuffer(val) && (val.length % ut.locLen || (my.bootLocs = ut.splitBuff(val, ut.locLen))); break
       }
@@ -177,25 +199,13 @@ const my = {
   bootLocs: Buffer.alloc(0),
 
   ipToId: (addr) => { // BEP42 security extension
-    addr = addr.split('.')
-    if (addr.length === 4) {
-      const mask = [ 0x03, 0x0f, 0x3f, 0xff ]
-      const id = Buffer.alloc(ut.idLen)
-      const ip = Buffer.alloc(4)
-      addr.forEach((dec, i) => { ip[i] = parseInt(dec, 10) & mask[i] })
-      const random = ut.random(22)
-      const rand = random[20]
-
-      ip[0] |= (rand & 0x7) << 5
-      const crc = crc32c(ip)
-
-      id[0] = (crc >> 24) & 0xff
-      id[1] = (crc >> 16) & 0xff
-      id[2] = ((crc >> 8) & 0xf8) | (random[21] & 0x7)
-      for (let i = 3; i < 19; ++i) id[i] = random[i]
-      id[19] = rand
-      my.id = id
-    }
+    const id = Buffer.alloc(ut.idLen)
+    const random = ut.random(20)
+    for (let i = 3; i < 19; ++i) id[i] = random[i]
+    const rand = random[0]
+    id[19] = rand
+    ut.makeBEP42(id, ut.crc(addr, rand), random[1])
+    my.id = id
   },
 
   populate: () => { oq.populate(my.table, my.bootLocs, (numVisited) => { go.doUpdate('ready', numVisited); my.update() }) },
@@ -261,7 +271,8 @@ const oq = {
   },
 
   resp: (y, mess, rinfo) => {
-    if (!mess.t) return
+    if (!mess.t || !mess.r) return
+    const bep42 = ut.checkBEP42(rinfo.address, mess.r.id)
     if (!mess.t.length === 2 || (y === 'r' && !(mess.r && mess.r.id)) || (y === 'e' && !mess.e)) return
     const t = ut.buff2ToInt(mess.t).toString()
     if (Object.keys(oq.pendingQueries).includes(t)) {
@@ -271,7 +282,7 @@ const oq = {
       if (y === 'r') done(mess.r)
       else if (y === 'e') {
         done(null)
-        go.doUpdate('error', { e: mess.e, socket: { address: rinfo.address, port: rinfo.port } })
+        go.doUpdate('error', { e: mess.e, socket: { address: rinfo.address, port: rinfo.port, bep42: bep42 } })
       }
     }
   },
@@ -420,8 +431,9 @@ const iq = {
     if (!mess.t) return
     if (!mess.q) { sendErr(203, 'Missing q'); return }
     if (!mess.a) { sendErr(203, 'Missing a'); return }
+    const bep42 = ut.checkBEP42(rinfo.address, mess.a.id)
     const q = mess.q.toString()
-    go.doUpdate('incoming', { q: q, socket: { address: rinfo.address, port: rinfo.port } })
+    go.doUpdate('incoming', { q: q, socket: { address: rinfo.address, port: rinfo.port, bep42: bep42 } })
     const resp = { t: mess.t, y: 'r', r: { id: my.id } }
     const a = mess.a
     if (!a.id) { sendErr(203, 'Missing id'); return }

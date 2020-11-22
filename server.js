@@ -135,7 +135,7 @@ function toLoc (str) { // converts 'address:port' to 6-byte hex buffer, where ad
 function go (loc) { opts.bootLocs = loc; dht = dhtInit(opts, update) }
 
 function update (key, val) {
-  function addrPort (obj) { return obj.address + ':' + obj.port }
+  function addrPort (obj) { return (obj.bep42 ? '' : '*') + obj.address + ':' + obj.port }
   switch (key) {
     case 'udpFail': report('fatal error opening port => ' + val, true); break
     case 'id': report('id => ' + val.toString('hex')); break

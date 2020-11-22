@@ -2,6 +2,7 @@
 
 Dynamic Hash Table customized for the Mainline DHT used by bittorrent to locate torrent peers without using a tracker.
 Includes BEP44 data storage. IPv4 only. References: [BEP5](http://www.bittorrent.org/beps/bep_0005.html), [BEP44](http://www.bittorrent.org/beps/bep_0044.html)
+Computes local BEP42 DHT node id from external IP address if provided. [BEP42](http://www.bittorrent.org/beps/bep_0042.html)
 
 ### Quick start
 
@@ -44,7 +45,7 @@ const dht = dhtInit(options, update) // options is an object, update is a callba
 Option | Description
 -------|------------
 options.port | local UDP server port (int, default 6881)
-options.id | local node *id* (default random)
+options.ip | external ip address used to compute DHT node *id* as per BEP42 (default random *id* is used)
 options.seed | seed for generating ed25519 key pair for signing mutable data (32-byte buffer, default random)
 options.bootLocs | remote node *locations* to contact at startup (buffer of concatenated *locations*, default empty)
 

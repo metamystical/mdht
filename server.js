@@ -11,7 +11,7 @@
 // seedPath -- stores 32-byte seed for keyPair generation; if absent, a random seed is created and stored
 // bootPath -- stores 6-byte network location * number of locations to boot from
 //
-// If server-port is 32-bytes in hex form, then this program functions as a tool to update idPath or seedPath
+// If server-port is 32-bytes in hex form, then this program functions as a tool to update seedPath
 //
 // HTTP server uses JSON. If a response includes a Node.js Buffer, the Buffer is converted to
 // an object: { type: 'Buffer', data: array of integers } and must be interpreted as such by clients.

@@ -2,7 +2,7 @@
 
 Dynamic Hash Table customized for the Mainline DHT used by bittorrent to locate torrent peers without using a tracker.
 Includes BEP44 data storage. IPv4 only. References: [BEP5](http://www.bittorrent.org/beps/bep_0005.html), [BEP44](http://www.bittorrent.org/beps/bep_0044.html)
-Computes local BEP42 DHT node id from external IP address if provided. [BEP42](http://www.bittorrent.org/beps/bep_0042.html)
+Computes local [BEP42](http://www.bittorrent.org/beps/bep_0042.html) DHT node id from external IP address if provided.
 
 ### Quick start
 

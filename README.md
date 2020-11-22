@@ -45,7 +45,7 @@ const dht = dhtInit(options, update) // options is an object, update is a callba
 Option | Description
 -------|------------
 options.port | local UDP server port (int, default 6881)
-options.ip | external ip address used to compute DHT node *id* as per BEP42 (default random *id* is used)
+options.ip | external ip address used to compute DHT node *id* as per BEP42 (string, default: random *id* is used)
 options.seed | seed for generating ed25519 key pair for signing mutable data (32-byte buffer, default random)
 options.bootLocs | remote node *locations* to contact at startup (buffer of concatenated *locations*, default empty)
 

@@ -1,7 +1,7 @@
 ## mdht -- Mainline DHT implemented in node.js
 
 Dynamic Hash Table customized for the Mainline DHT used by bittorrent to locate torrent peers without using a tracker.
-Includes BEP44 data storage. IPv4 only. References: [BEP5](http://www.bittorrent.org/beps/bep_0005.html), [BEP44](http://www.bittorrent.org/beps/bep_0044.html)
+Includes BEP44 data storage. IPv4 only. References: [BEP5](http://www.bittorrent.org/beps/bep_0005.html), [BEP44](http://www.bittorrent.org/beps/bep_0044.html).
 Computes local [BEP42](http://www.bittorrent.org/beps/bep_0042.html) DHT node id from external IP address if provided.
 
 ### Quick start
@@ -13,8 +13,8 @@ $ node server.js
 ```
 server.js will connect to the global mainline DHT via default UDP port 6881 (which should be forwarded),
 by bootstraping from router.bittorrent.com:6881, and then will begin to respond to requests from
-other nodes, using a random node id. Configuration information and incoming requests are
-displayed on the console. The id, routing table and cryptographic seed are
+other nodes. Configuration information and incoming requests are
+displayed on the console. The routing table and cryptographic seed are
 saved to disk for future restarts.
 
 server.js interfaces between mdht.js (which in turn interfaces with the DHT network), the user
@@ -123,7 +123,7 @@ Key | Signal | Value
 'dropPeer' | peer location dropped from storage | 'address:port'
 'dropData' | data dropped from BEP44 storage | 'target' (hex string)
 
-### BEP42 -- DHT Security extension
+### BEP42 DHT Security extension
 
 As of v3.1.0, mdht.js contains BEP42 code, partially implemented.
 The code is used to generate a BEP42 compliant local DHT node *id*

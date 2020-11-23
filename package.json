@@ -1,6 +1,6 @@
 {
   "name": "mdht",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "main": "mdht.js",
   "description": "Mainline DHT",
   "license": "MIT",

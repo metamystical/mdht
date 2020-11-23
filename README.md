@@ -122,3 +122,13 @@ Key | Signal | Value
 'dropNode' | node dropped from routing table | 'address:port'
 'dropPeer' | peer location dropped from storage | 'address:port'
 'dropData' | data dropped from BEP44 storage | 'target' (hex string)
+
+### BEP42 -- DHT Security extension
+
+As of v3.1.0, mdht.js contains BEP42 code, partially implemented.
+The code is used to generate a BEP42 compliant local DHT node *id*
+given the externally visible IP address. However, BEP42 is not
+enforced on remote DHT nodes. On the server.js log output,
+remote IP addresses are prefixed with an asterix when the corresponding
+*id* is not compliant. At this time, only a small percentage of
+DHT nodes are compliant.

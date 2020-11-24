@@ -1,6 +1,6 @@
 {
   "name": "mdht",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "main": "mdht.js",
   "description": "Mainline DHT",
   "license": "MIT",
@@ -11,5 +11,15 @@
   "dependencies": {
     "ed25519-supercop": "2.0.1",
     "polycrc": "1.0.1"
+  },
+  "keywords": {
+    "dht",
+    "distributed hash table",
+    "mainline",
+    "bittorrent",
+    "p2p",
+    "BEP5",
+    "BEP42",
+    "BEP44"
   }
 }

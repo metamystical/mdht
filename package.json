@@ -12,14 +12,14 @@
     "ed25519-supercop": "2.0.1",
     "polycrc": "1.0.1"
   },
-  "keywords": {
+  "keywords": [
     "dht",
-    "distributed hash table",
+    "distributed-hash-table",
     "mainline",
     "bittorrent",
     "p2p",
     "BEP5",
     "BEP42",
     "BEP44"
-  }
+  ]
 }

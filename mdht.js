@@ -421,7 +421,8 @@ const iq = {
   newSecret: () => { iq.oldSecret = iq.secret; iq.secret = ut.random(ut.idLen) },
 
   query: (mess, rinfo) => {
-    const sendErr = (code, msg) => { sr.send(encode({ t: mess.t, y: 'e', e: [code, msg] }), rinfo) }
+    const ip = ut.makeLoc(rinfo.address, rinfo.port)
+    const sendErr = (code, msg) => { sr.send(encode({ ip: ip, t: mess.t, y: 'e', e: [code, msg] }), rinfo) }
     const contactsToNodes = (contacts) => {
       let nodes = []; let num = 0
       contacts.forEach((contact) => { nodes.push(contact.id, contact.loc); ++num })
@@ -434,7 +435,7 @@ const iq = {
     const bep42 = ut.checkBEP42(rinfo.address, mess.a.id)
     const q = mess.q.toString()
     go.doUpdate('incoming', { q: q, socket: { address: rinfo.address, port: rinfo.port, bep42: bep42 } })
-    const resp = { t: mess.t, y: 'r', r: { id: my.id } }
+    const resp = { ip: ip, t: mess.t, y: 'r', r: { id: my.id } }
     const a = mess.a
     if (!a.id) { sendErr(203, 'Missing id'); return }
     if (a.id.length !== ut.idLen) { sendErr(203, 'Invalid id length'); return }
